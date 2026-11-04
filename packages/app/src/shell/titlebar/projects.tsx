@@ -48,15 +48,21 @@ export function SidebarProjects() {
     })
 
     // Groups keep a stable order: a session that updates must not move its project, or several running agents
-    // reorder the sidebar on every tick. Activity shows on the row instead.
+    // reorder the sidebar on every tick. Activity shows on the row instead. Mirrors DeepSeek Harness, which
+    // keeps Workspaces in host order and orders only the sessions inside them.
     return [...map.values()].sort((a, b) => {
       if (a.key === "ungrouped") return 1
       if (b.key === "ungrouped") return -1
 
-      return displayName(a.project ?? { worktree: a.directory }).localeCompare(
-        displayName(b.project ?? { worktree: b.directory }),
-        undefined,
-        { sensitivity: "base" },
+      const created = (a.project?.time?.created ?? 0) - (b.project?.time?.created ?? 0)
+
+      return (
+        created ||
+        displayName(a.project ?? { worktree: a.directory }).localeCompare(
+          displayName(b.project ?? { worktree: b.directory }),
+          undefined,
+          { sensitivity: "base" },
+        )
       )
     })
   })
