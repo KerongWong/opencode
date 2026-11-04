@@ -47,7 +47,18 @@ export function SidebarProjects() {
       map.set(key, { key, entries: [entry], directory, project })
     })
 
-    return [...map.values()].sort((a, b) => (a.key === "ungrouped" ? 1 : b.key === "ungrouped" ? -1 : 0))
+    // Groups keep a stable order: a session that updates must not move its project, or several running agents
+    // reorder the sidebar on every tick. Activity shows on the row instead.
+    return [...map.values()].sort((a, b) => {
+      if (a.key === "ungrouped") return 1
+      if (b.key === "ungrouped") return -1
+
+      return displayName(a.project ?? { worktree: a.directory }).localeCompare(
+        displayName(b.project ?? { worktree: b.directory }),
+        undefined,
+        { sensitivity: "base" },
+      )
+    })
   })
 
   const selected = (entry: InboxEntry) => inbox.selected(entry)
