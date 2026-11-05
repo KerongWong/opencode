@@ -349,6 +349,17 @@ function ProjectGroup(props: {
                           {sessionTabTitle(entry().session.title, language.t("session.tab.session"))}
                         </span>
                         <span class="flex shrink-0 items-center justify-end">
+                          <Show when={entry().status === "done" || entry().status === "failed"}>
+                            <span class="sr-only">{language.t(`sidebar.inbox.status.${entry().status}`)}</span>
+                            <span
+                              aria-hidden="true"
+                              class="me-1.5 size-[7px] shrink-0 rounded-full"
+                              classList={{
+                                "bg-v2-state-fg-danger": entry().status === "failed",
+                                "bg-v2-background-bg-accent": entry().status === "done",
+                              }}
+                            />
+                          </Show>
                           <Show
                             when={entry().status === "working"}
                             fallback={
