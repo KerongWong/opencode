@@ -106,7 +106,7 @@ export function SidebarProjects() {
   const selected = (entry: InboxEntry) => inbox.selected(entry)
 
   const age = (entry: InboxEntry) => {
-    const seconds = Math.max(0, Math.floor((inbox.now() - entry.session.time.updated) / 1000))
+    const seconds = Math.max(0, Math.floor((inbox.now(entry.status) - entry.session.time.updated) / 1000))
 
     if (seconds < 60) return language.t("sidebar.inbox.time.now")
 
