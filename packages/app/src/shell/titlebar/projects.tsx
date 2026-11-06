@@ -303,7 +303,7 @@ function ProjectGroup(props: {
           type="button"
           data-slot="sidebar-projects-project"
           aria-expanded={!props.collapsed()}
-          class="flex h-8 w-full cursor-grab items-center gap-1.5 rounded-[6px] px-1.5 text-start active:cursor-grabbing hover:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none focus-visible:bg-v2-overlay-simple-overlay-hover"
+          class="flex h-8 w-full cursor-grab items-center gap-1.5 rounded-[6px] bg-v2-background-bg-layer-02 px-1.5 text-start active:cursor-grabbing hover:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none focus-visible:bg-v2-overlay-simple-overlay-hover"
           onClick={() => {
             if (props.recentlyDragged()) return
             props.onToggle(props.collapsed())
@@ -320,7 +320,7 @@ function ProjectGroup(props: {
           />
           <span
             dir="auto"
-            class="min-w-0 flex-1 truncate text-[13px] leading-4 font-medium tracking-[-0.04px] text-v2-text-text-base"
+            class="min-w-0 flex-1 truncate text-[14px] leading-4 font-medium tracking-[-0.04px] text-v2-text-text-base"
           >
             {displayName(props.group()?.project ?? { worktree: props.group()?.directory ?? "" })}
           </span>
