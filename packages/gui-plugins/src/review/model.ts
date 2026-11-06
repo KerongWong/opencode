@@ -4,11 +4,9 @@ import { previewSelectedLines } from "@opencode/session-ui/pierre/selection-brid
 import { artifactMime } from "@opencode/util/artifact"
 import { bytesToBase64 } from "@opencode/util/base64"
 import { checksum } from "@opencode/util/encode"
-import { showToast } from "@opencode/ui/toast"
-import { createQuery, focusManager, useQueryClient } from "@tanstack/solid-query"
+import { focusManager, useQueryClient } from "@tanstack/solid-query"
 import { debounce } from "@solid-primitives/scheduled"
 import { createMemo, createSignal, on, onCleanup, untrack, type Accessor } from "solid-js"
-import { createStore } from "solid-js/store"
 import {
   createKeyed,
   type LineRange,
@@ -39,6 +37,13 @@ import {
   type ReviewFolderSource,
   type ReviewFolderState,
 } from "./folder-machine"
+import {
+  createReviewInitGitState,
+  isInitializingGit,
+  transitionReviewInitGit,
+  type ReviewInitGitEffect,
+  type ReviewInitGitEvent,
+} from "./init-git-machine"
 import {
   INITIAL_REVIEW_RENDER_STATE,
   reviewMobileReady,
@@ -73,6 +78,7 @@ import {
   type ReviewDiffTarget,
   type ReviewDiffView,
 } from "./machine"
+import type { ReviewDetailStage, ReviewDetailTarget } from "./detail-machine"
 
 export type ChangeMode = "git" | "branch" | "turn"
 
@@ -114,10 +120,7 @@ export function createReviewModel(input: {
   const directory = () => screen.file.root
 
   // The filter is transient by design: a persisted filter would silently hide files after a reload.
-  const [state, setState] = createStore<{ filter: string; initializingGit: Record<string, true | undefined> }>({
-    filter: "",
-    initializingGit: {},
-  })
+  const [filter, setFilter] = createSignal("")
 
   // The machines keep numbers, not the visit objects that tell routing visits apart.
   const visits = { ids: new WeakMap<MountedSession["visit"], number>(), last: 0 }
@@ -211,18 +214,6 @@ export function createReviewModel(input: {
     return list.includes(chosen) ? chosen : (list[0] ?? "git")
   })
 
-  const vcsKey = createMemo(
-    () =>
-      [
-        ctx.id,
-        view().server.id,
-        "session-vcs",
-        directory(),
-        vcs()?.branch.current ?? "",
-        vcs()?.branch.default ?? "",
-      ] as const,
-  )
-
   const wantsReview = createMemo(() => {
     const demand = input.demand
 
@@ -263,112 +254,156 @@ export function createReviewModel(input: {
     { equals: sameDiffContext },
   )
 
-  const [diffState, setDiffState] = createSignal<ReviewDiffState>(INITIAL_REVIEW_DIFF_STATE)
-  const diffRequest: DiffRequest = {}
+  // One diff machine and its driver. The diffs a target last loaded stay in the query cache under `key`, so returning
+  // to a mode or directory shows them at once.
+  const createDiffSlice = (input: {
+    key: (target: ReviewDiffTarget) => readonly unknown[]
+    request: (target: ReviewDiffTarget, signal: AbortSignal) => Promise<readonly FileDiffInfo[]>
+  }) => {
+    const [state, setState] = createSignal<ReviewDiffState>(INITIAL_REVIEW_DIFF_STATE)
+    const request: DiffRequest = {}
 
-  // The diffs a target last loaded stay in the query cache, so returning to a mode or directory shows them at once.
-  const diffKey = (target: ReviewDiffTarget) =>
-    target.kind === "turn"
-      ? [ctx.id, target.serverID, "session-turn", target.sessionID]
-      : [ctx.id, target.serverID, "session-vcs", target.directory, target.branch, target.defaultBranch, target.mode]
+    const dispatch = (event: ReviewDiffEvent) => {
+      const next = transitionReviewDiff(untrack(state), event)
 
-  const dispatchDiff = (event: ReviewDiffEvent) => {
-    const next = transitionReviewDiff(untrack(diffState), event)
+      setState(next.state)
+      next.effects.forEach(run)
+    }
 
-    setDiffState(next.state)
-    next.effects.forEach(runDiffEffect)
-  }
+    const run = (effect: ReviewDiffEffect) => {
+      clearTimeout(request.timer)
+      request.controller?.abort()
 
-  const runDiffEffect = (effect: ReviewDiffEffect) => {
-    clearTimeout(diffRequest.timer)
-    diffRequest.controller?.abort()
+      if (effect.type === "abort") return
+      const attempt = effect.attempt
+      const controller = new AbortController()
 
-    if (effect.type === "abort") return
-    const attempt = effect.attempt
-    const controller = new AbortController()
+      const timer = setTimeout(() => {
+        controller.abort()
+        dispatch({ type: "fetch.timed-out", attempt })
+      }, REVIEW_DIFF_TIMEOUT_MS)
 
-    const timer = setTimeout(() => {
-      controller.abort()
-      dispatchDiff({ type: "fetch.timed-out", attempt })
-    }, REVIEW_DIFF_TIMEOUT_MS)
+      request.controller = controller
+      request.timer = timer
+      // The machine drops the answer of a request it no longer waits for, aborted or not.
+      void input.request(effect.target, AbortSignal.any([ctx.signal, controller.signal])).then(
+        (rows) => {
+          clearTimeout(timer)
+          const loaded: ReviewDiffRows = { rows, version: Date.now() }
 
-    diffRequest.controller = controller
-    diffRequest.timer = timer
-    // The machine drops the answer of a request it no longer waits for, aborted or not.
-    void requestDiff(effect.target, AbortSignal.any([ctx.signal, controller.signal])).then(
-      (rows) => {
-        clearTimeout(timer)
-        const loaded: ReviewDiffRows = { rows, version: Date.now() }
-
-        queryClient.setQueryData(diffKey(effect.target), loaded)
-        dispatchDiff({ type: "fetch.succeeded", attempt, rows: loaded })
-      },
-      (cause: unknown) => {
-        clearTimeout(timer)
-        dispatchDiff({ type: "fetch.failed", attempt, message: cause instanceof Error ? cause.message : String(cause) })
-      },
-    )
-  }
-
-  const requestDiff = (target: ReviewDiffTarget, signal: AbortSignal) => {
-    const client = view().server.client
-
-    if (target.kind === "turn") return client.session.diff({ sessionID: target.sessionID }, { signal })
-
-    return client.vcs
-      .diff(
-        {
-          location: { directory: target.directory },
-          mode: target.mode === "git" ? "working" : target.mode,
-          untracked: "folders",
+          queryClient.setQueryData(input.key(effect.target), loaded)
+          dispatch({ type: "fetch.succeeded", attempt, rows: loaded })
         },
-        { signal },
+        (cause: unknown) => {
+          clearTimeout(timer)
+          dispatch({ type: "fetch.failed", attempt, message: cause instanceof Error ? cause.message : String(cause) })
+        },
       )
-      .then((result) => result.data)
+    }
+
+    const sync = (context: ReviewDiffContext) =>
+      dispatch({
+        type: "context.changed",
+        context:
+          context.kind === "ready"
+            ? { ...context, cached: queryClient.getQueryData<ReviewDiffRows>(input.key(context.target)) }
+            : context,
+      })
+
+    onCleanup(() => dispatch({ type: "disposed" }))
+
+    // A connection or demand change alone keeps the view, so the diffs it shows are not computed again.
+    return {
+      dispatch,
+      sync,
+      ready: () => reviewDiffReady(state()),
+      view: createMemo(() => reviewDiffView(state()), undefined, { equals: sameDiffView }),
+    }
   }
 
-  createKeyed(diffContext, (context) =>
-    dispatchDiff({
-      type: "context.changed",
-      context:
-        context.kind === "ready"
-          ? { ...context, cached: queryClient.getQueryData<ReviewDiffRows>(diffKey(context.target)) }
-          : context,
-    }),
+  const changes = createDiffSlice({
+    key: (target) =>
+      target.kind === "turn"
+        ? [ctx.id, target.serverID, "session-turn", target.sessionID]
+        : [ctx.id, target.serverID, "session-vcs", target.directory, target.branch, target.defaultBranch, target.mode],
+    request: (target, signal) => {
+      const client = view().server.client
+
+      if (target.kind === "turn") return client.session.diff({ sessionID: target.sessionID }, { signal })
+
+      return client.vcs
+        .diff(
+          {
+            location: { directory: target.directory },
+            mode: target.mode === "git" ? "working" : target.mode,
+            untracked: "folders",
+          },
+          { signal },
+        )
+        .then((result) => result.data)
+    },
+  })
+
+  const dispatchDiff = changes.dispatch
+  const diffView = changes.view
+
+  createKeyed(diffContext, changes.sync)
+
+  // The session details' changes row: the session directory's working tree, whatever the review mode, loaded only
+  // while the details show. Untracked files list their own line counts.
+  const details = createDiffSlice({
+    key: (target) => [ctx.id, target.serverID, "session-details", target.kind === "vcs" ? target.directory : ""],
+    request: (target, signal) =>
+      view()
+        .server.client.vcs.diff(
+          { location: { directory: target.kind === "vcs" ? target.directory : directory() }, mode: "working" },
+          { signal },
+        )
+        .then((result) => result.data),
+  })
+
+  const detailsContext = createMemo(
+    (): ReviewDiffContext => {
+      const project = view().project
+
+      if (project && !project.vcs) return { kind: "no-vcs" }
+      const connected = view().server.connected
+
+      if (!project) return connected ? { kind: "waiting" } : { kind: "offline" }
+
+      return {
+        kind: "ready",
+        target: {
+          kind: "vcs",
+          serverID: view().server.id,
+          directory: view().directory,
+          mode: "git",
+          branch: "",
+          defaultBranch: "",
+        },
+        connected,
+        demanded: input.demand.details > 0,
+      }
+    },
+    undefined,
+    { equals: sameDiffContext },
   )
 
-  // A finished turn does not change on focus or filesystem events; the machine refreshes only Git changes then.
+  createKeyed(detailsContext, details.sync)
+
+  // A finished turn does not change on focus or filesystem events; the machines refresh only Git changes then.
   onCleanup(
     focusManager.subscribe((focused) => {
-      if (focused) dispatchDiff({ type: "window.focused" })
+      if (!focused) return
+      dispatchDiff({ type: "window.focused" })
+      details.dispatch({ type: "window.focused" })
     }),
   )
-  onCleanup(() => dispatchDiff({ type: "disposed" }))
-
-  // A connection or demand change alone keeps the view, so the diffs it shows are not computed again.
-  const diffView = createMemo(() => reviewDiffView(diffState()), undefined, { equals: sameDiffView })
-
-  // The session details' changes row: the session directory's working tree, loaded only while the details show.
-  const detailsKey = () => [ctx.id, view().server.id, "session-details", view().directory] as const
-
-  const detailsQuery = createQuery(() => ({
-    queryKey: detailsKey(),
-    enabled: input.demand.details > 0 && view().server.connected && !!view().project?.vcs,
-    queryFn: () =>
-      view()
-        .server.client.vcs.diff({ location: { directory: view().directory }, mode: "working" })
-        .then((result) => result.data)
-        .catch((error) => {
-          console.debug("[session-review] failed to load session details diff", { error })
-
-          return []
-        }),
-  }))
 
   const refresh = debounce(() => {
     dispatchDiff({ type: "refresh", source: "vcs" })
+    details.dispatch({ type: "refresh", source: "vcs" })
     dispatchFolders({ type: "refresh" })
-    void queryClient.invalidateQueries({ queryKey: detailsKey() })
   }, 100)
 
   // The server reports file changes in the directory; its event stream follows a restarted server. Routing another
@@ -553,133 +588,197 @@ export function createReviewModel(input: {
   const count = () => rows().length
   const hasChanges = () => count() > 0
 
-  const ready = () => reviewDiffReady(diffState())
+  const ready = changes.ready
 
-  const alive = () => untrack(diffState).status !== "disposed" && !ctx.signal.aborted
+  // Git initialization per session. Each request keeps its session's object, so its server and location stay its own;
+  // only error feedback depends on which session is routed when it fails.
+  const [initGitState, setInitGitState] = createSignal(createReviewInitGitState())
+  const initGitRequests = new Map<number, DiffRequest>()
+  const initGitSessions = new Map<string, MountedSession>()
 
-  // Initializes Git for the routed session. The request keeps that session's object, so its server and location stay
-  // its own. Cache refresh follows the request's session; only error feedback depends on which session is routed.
-  const initializeGit = () => {
-    const session = view()
+  const dispatchInitGit = (event: ReviewInitGitEvent) => {
+    const next = transitionReviewInitGit(untrack(initGitState), event)
 
-    if (state.initializingGit[session.key]) return
-    const location = session.location
+    setInitGitState(next.state)
 
-    if (!location || !session.server.connected) {
-      showToast({ variant: "error", title: ctx.t("common.requestFailed") })
+    // The machine releases a session's button; the driver forgets the session object with it.
+    if (event.type === "disposed") initGitSessions.clear()
+
+    if (event.type !== "disposed" && !isInitializingGit(next.state, event.sessionKey))
+      initGitSessions.delete(event.sessionKey)
+    next.effects.forEach(runInitGitEffect)
+  }
+
+  const runInitGitEffect = (effect: ReviewInitGitEffect) => {
+    if (effect.type === "attempt.abort") {
+      const request = initGitRequests.get(effect.attempt)
+
+      initGitRequests.delete(effect.attempt)
+      clearTimeout(request?.timer)
+      request?.controller?.abort()
 
       return
     }
 
-    const current = () => alive() && view().key === session.key
-
-    setState("initializingGit", session.key, true)
-    void session.server.client.vcs
-      .init({ location, provider: "git" })
-      .then(async () => {
-        if (!alive()) return
-
-        const data = session.server.data
-
-        data.project.invalidate()
-        data.session.invalidate(session.id)
-        data.location.invalidate(location)
-        data.location.vcs.invalidate(location)
-        await data.project.sync()
-
-        if (!alive()) return
-        await data.session.sync(session.id)
-
-        if (!alive()) return
-        await Promise.all([data.location.syncInfo(location), data.location.vcs.sync(location)])
+    if (effect.type === "toast.failed") {
+      ctx.toast.show({
+        variant: "error",
+        title: ctx.t("common.requestFailed"),
+        description: effect.reason === "timeout" ? ctx.t("load.timeout") : effect.message,
       })
-      .catch((error) => {
-        if (!current()) return
 
-        showToast({
-          variant: "error",
-          title: ctx.t("common.requestFailed"),
-          description: error instanceof Error ? error.message : undefined,
-        })
+      return
+    }
+
+    const session = initGitSessions.get(effect.sessionKey)
+    const location = session?.location
+    const sessionKey = effect.sessionKey
+    const attempt = effect.attempt
+    const controller = new AbortController()
+    const signal = AbortSignal.any([ctx.signal, controller.signal])
+
+    if (effect.type === "vcs.init") {
+      initGitRequests.set(attempt, {
+        controller,
+        timer: setTimeout(
+          () => dispatchInitGit({ type: "init.timed-out", sessionKey, attempt, routedSessionKey: untrack(view).key }),
+          effect.timeoutMs,
+        ),
       })
-      .finally(() => {
-        if (alive()) setState("initializingGit", session.key, undefined)
-      })
+      void Promise.try(() => {
+        if (!session || !location) throw new Error(ctx.t("common.requestFailed"))
+
+        return session.server.client.vcs.init({ location, provider: "git" }, { signal })
+      }).then(
+        () => dispatchInitGit({ type: "init.succeeded", sessionKey, attempt }),
+        (cause: unknown) =>
+          dispatchInitGit({
+            type: "init.failed",
+            sessionKey,
+            attempt,
+            routedSessionKey: untrack(view).key,
+            message: cause instanceof Error ? cause.message : undefined,
+          }),
+      )
+
+      return
+    }
+
+    initGitRequests.set(attempt, {
+      controller,
+      timer: setTimeout(() => dispatchInitGit({ type: "sync.timed-out", sessionKey, attempt }), effect.timeoutMs),
+    })
+    // Each refresh runs even when an earlier one fails: the repository exists either way.
+    void Promise.try(async () => {
+      if (!session || !location) return
+      const data = session.server.data
+
+      data.project.invalidate()
+      data.session.invalidate(session.id)
+      data.location.invalidate(location)
+      data.location.vcs.invalidate(location)
+      await data.project.sync().catch(() => undefined)
+
+      if (signal.aborted) return
+      await data.session.sync(session.id).catch(() => undefined)
+
+      if (signal.aborted) return
+      await Promise.allSettled([data.location.syncInfo(location), data.location.vcs.sync(location)])
+    })
+      .catch(() => undefined)
+      .then(() => dispatchInitGit({ type: "sync.settled", sessionKey, attempt }))
   }
 
-  const loadDiff = async (path: string, version?: number): Promise<FileDiffInfo | undefined> => {
-    const source = diffs().find((diff) => diff.file === path)
+  onCleanup(() => dispatchInitGit({ type: "disposed" }))
 
-    const valid = (diff: FileDiffInfo | undefined): FileDiffInfo | undefined => {
-      if (!diff || !source) return undefined
+  // Initializes Git for the routed session.
+  const initializeGit = () => {
+    const session = view()
+    const ready = Boolean(session.location && session.server.connected)
 
-      if (diff.additions !== source.additions || diff.deletions !== source.deletions) return undefined
+    if (ready && !isInitializingGit(untrack(initGitState), session.key)) initGitSessions.set(session.key, session)
+    dispatchInitGit({ type: "init.requested", sessionKey: session.key, ready })
+  }
 
-      if (reviewDiffNeedsLoad(diff)) return undefined
+  // Oversized full-file patches come back without hunks; the file's own directory, or bounded context, usually fits.
+  // Each request reads only its target, fixed when the file was previewed, so a session switch cannot answer it.
+  const detailKey = (target: ReviewDetailTarget, stage: ReviewDetailStage) =>
+    target.kind === "turn"
+      ? [ctx.id, target.serverID, "session-turn", target.sessionID, "bounded", target.version]
+      : [
+          ctx.id,
+          target.serverID,
+          "session-vcs",
+          target.mode,
+          target.branch,
+          target.defaultBranch,
+          stage === "scoped" ? target.scoped : target.root,
+          stage,
+          target.version,
+        ]
 
-      return diff
-    }
+  const detailStages = (target: ReviewDetailTarget): ReviewDetailStage[] =>
+    target.kind === "vcs" && target.scoped !== target.root ? ["scoped", "bounded"] : ["bounded"]
 
-    const value = mode()
+  /** The previewed file's full patch: what its request reads, the patch an earlier request loaded, and the request. */
+  const detail = {
+    target: (diff: FileDiffInfo, version: number): ReviewDetailTarget => {
+      const session = view()
+      const value = mode()
 
-    // Oversized full-file patches come back empty; bounded context usually fits.
-    if (value === "turn") {
-      return queryClient
-        .fetchQuery({
-          queryKey: [...turnKey(), "bounded", version] as const,
-          staleTime: Number.POSITIVE_INFINITY,
-          retry: 2,
-          queryFn: () => view().server.client.session.diff({ sessionID: view().id, context: 3 }),
-        })
-        .then((result) => valid(result.find((diff) => diff.file === path)))
-        .catch((error) => {
-          console.debug("[session-review] failed to load bounded turn diff", { path, error })
+      const file = {
+        serverID: session.server.id,
+        file: diff.file,
+        additions: diff.additions,
+        deletions: diff.deletions,
+        version,
+      }
 
-          return undefined
-        })
-    }
+      if (value === "turn") return { kind: "turn", sessionID: session.id, ...file }
+      const root = reviewRootDirectory(session.project?.worktree ?? directory())
 
-    const root = reviewRootDirectory(view().project?.worktree ?? directory())
-    const scoped = reviewDiffDirectory(root, path)
+      return {
+        kind: "vcs",
+        mode: value,
+        branch: vcs()?.branch.current ?? "",
+        defaultBranch: vcs()?.branch.default ?? "",
+        root,
+        scoped: reviewDiffDirectory(root, diff.file),
+        ...file,
+      }
+    },
+    cached: (target: ReviewDetailTarget) =>
+      detailStages(target)
+        .map((stage) => validDetail(queryClient.getQueryData<FileDiffInfo[]>(detailKey(target, stage)), target))
+        .find((diff) => diff !== undefined),
+    load: (target: ReviewDetailTarget, stage: ReviewDetailStage, signal: AbortSignal) => {
+      const server = view().server
 
-    const request = (scope: string, context?: number) =>
-      queryClient
-        .fetchQuery({
-          queryKey: [ctx.id, ...vcsKey(), value, "directory", scope, context, version] as const,
-          staleTime: Number.POSITIVE_INFINITY,
-          retry: 2,
-          queryFn: () =>
-            view()
-              .server.client.vcs.diff({
-                location: { directory: scope },
-                mode: value === "git" ? "working" : value,
-                context,
-                untracked: "folders",
-              })
-              .then((result) => result.data),
-        })
-        .then((result) => result.find((diff) => diff.file === path))
+      // The routed session moved to another server meanwhile; the preview already asks for another target.
+      if (server.id !== target.serverID) return Promise.reject(new Error(ctx.t("common.requestFailed")))
+      const both = AbortSignal.any([ctx.signal, signal])
 
-    if (scoped !== root) {
-      const result = await request(scoped).then(valid, (error) => {
-        console.debug("[session-review] failed to load scoped vcs diff", {
-          mode: value,
-          path,
-          directory: scoped,
-          error,
-        })
+      const rows =
+        target.kind === "turn"
+          ? server.client.session.diff({ sessionID: target.sessionID, context: 3 }, { signal: both })
+          : server.client.vcs
+              .diff(
+                {
+                  location: { directory: stage === "scoped" ? target.scoped : target.root },
+                  mode: target.mode === "git" ? "working" : target.mode,
+                  context: stage === "bounded" ? 3 : undefined,
+                  untracked: "folders",
+                },
+                { signal: both },
+              )
+              .then((result) => result.data)
 
-        return undefined
+      return rows.then((list) => {
+        queryClient.setQueryData(detailKey(target, stage), list)
+
+        return validDetail(list, target)
       })
-
-      if (result) return result
-    }
-
-    return request(root, 3).then(valid, (error) => {
-      console.debug("[session-review] failed to load bounded vcs diff", { mode: value, path, root, error })
-
-      return undefined
-    })
+    },
   }
 
   // Previews read files only to show images and audio, which need the raw bytes and their MIME type.
@@ -908,7 +1007,10 @@ export function createReviewModel(input: {
       update: updateComment,
     },
     count,
-    details: (): FileDiffInfo[] | undefined => (detailsQuery.isFetched ? (detailsQuery.data ?? []) : undefined),
+    detail,
+    /** The session details' changes row. */
+    details: details.view,
+    retryDetails: () => details.dispatch({ type: "retry" }),
     /** What the review shows: diffs, or why there are none yet. */
     diff: diffView,
     diffVersion: () => {
@@ -923,12 +1025,11 @@ export function createReviewModel(input: {
     focusFile,
     hasChanges,
     initializeGit,
-    initializingGit: () => !!state.initializingGit[view().key],
-    loadDiff,
+    initializingGit: () => isInitializingGit(initGitState(), view().key),
     readFile,
     mode,
-    filter: () => state.filter,
-    setFilter: (value: string) => setState("filter", value),
+    filter,
+    setFilter: (value: string) => void setFilter(value),
     open: () => stored()?.open ?? [],
     setOpen: (next: string[]) =>
       update((draft) => {
@@ -981,6 +1082,15 @@ function sameDiffContext(previous: ReviewDiffContext, next: ReviewDiffContext) {
     previous.demanded === next.demanded &&
     sameReviewDiffTarget(previous.target, next.target)
   )
+}
+
+/** The target's patch in a loaded list, when it has hunks and the line counts the review listed. */
+function validDetail(list: readonly FileDiffInfo[] | undefined, target: ReviewDetailTarget) {
+  const diff = list?.find((item) => item.file === target.file)
+
+  if (!diff || diff.additions !== target.additions || diff.deletions !== target.deletions) return undefined
+
+  return reviewDiffNeedsLoad(diff) ? undefined : diff
 }
 
 function sameDiffView(previous: ReviewDiffView, next: ReviewDiffView) {
