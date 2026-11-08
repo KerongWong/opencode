@@ -655,7 +655,8 @@ export function InboxSessionCard(props: {
                   />
                 }
               >
-                <ActivityRing class="shrink-0 text-v2-icon-icon-muted" />
+                {/* The ring's own unlayered CSS beats utility classes, so the higher-contrast color goes inline. */}
+                <ActivityRing class="shrink-0" width={16} height={16} style={{ color: "var(--v2-icon-icon-base)" }} />
               </Show>
             </Show>
             {/* Announce only the state, not each age update. */}

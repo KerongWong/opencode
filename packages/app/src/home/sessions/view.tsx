@@ -364,7 +364,8 @@ function HomeSessionIndicators(props: {
           {/* A busy session shows its activity ring instead of the unread dot. */}
           <HomeSessionLeading record={props.record} open={state.open()} unread={state.unread() && !state.loading()} />
           <Show when={state.loading()}>
-            <ActivityRing class="order-last ms-auto" />
+            {/* The ring's own unlayered CSS beats utility classes, so the higher-contrast color goes inline. */}
+            <ActivityRing class="order-last ms-auto" width={16} height={16} style={{ color: "var(--v2-icon-icon-base)" }} />
           </Show>
         </>
       )}

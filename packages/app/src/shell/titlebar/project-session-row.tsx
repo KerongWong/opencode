@@ -152,7 +152,8 @@ export function ProjectSessionRow(props: {
               </Show>
             }
           >
-            <ActivityRing width={14} height={14} />
+            {/* The ring's own unlayered CSS beats utility classes, so the higher-contrast color goes inline. */}
+            <ActivityRing width={16} height={16} style={{ color: "var(--v2-icon-icon-base)" }} />
           </Show>
         </span>
       </Menu.Context.Trigger>

@@ -1,4 +1,4 @@
-import { For, Show, createEffect, createMemo, createSignal, on, onCleanup } from "solid-js"
+import { For, Match, Show, Switch, createEffect, createMemo, createSignal, on, onCleanup } from "solid-js"
 import { createResizeObserver } from "@solid-primitives/resize-observer"
 import { createStore } from "solid-js/store"
 import { DragDropProvider, PointerSensor } from "@dnd-kit/solid"
@@ -22,6 +22,14 @@ const SESSIONS_PER_PROJECT = 5
 
 // A click still arrives after a drag finishes, and it must not collapse the project the person just moved.
 const DRAG_CLICK_GRACE = 250
+
+const STATUS_LABEL = {
+  approval: "sidebar.inbox.status.approval",
+  input: "sidebar.inbox.status.input",
+  working: "sidebar.inbox.status.working",
+  failed: "sidebar.inbox.status.failed",
+  done: "sidebar.inbox.status.done",
+} as const
 
 type ProjectGroup = {
   key: string
@@ -290,6 +298,36 @@ function ProjectGroup(props: {
   const entryByKey = createMemo(() => new Map(entries().map((entry) => [entry.key, entry] as const)))
   const hidden = () => entries().length - SESSIONS_PER_PROJECT
 
+  const summary = createMemo(() =>
+    entries().reduce(
+      (counts, entry) => {
+        if (entry.status === "approval" || entry.status === "input") counts.attention++
+        else if (entry.status === "failed") counts.failed++
+        else if (entry.status === "working") counts.working++
+
+        return counts
+      },
+      { attention: 0, failed: 0, working: 0 },
+    ),
+  )
+
+  // One badge, most urgent first: a person scanning the list needs to see where they are needed, not every state.
+  const badge = () => {
+    const counts = summary()
+
+    if (counts.attention) return { kind: "attention" as const, count: counts.attention }
+
+    if (counts.failed) return { kind: "failed" as const, count: counts.failed }
+
+    if (counts.working) return { kind: "working" as const, count: counts.working }
+  }
+
+  const badgeLabel = (value: { kind: "attention" | "failed" | "working"; count: number }) =>
+    language.plural(`sidebar.projects.status.${value.kind}`, value.count, { count: value.count })
+
+  const statusLabel = (status: InboxEntry["status"]) =>
+    status === "ready" ? undefined : language.t(STATUS_LABEL[status])
+
   return (
     <Show when={props.group()}>
       <section
@@ -324,7 +362,34 @@ function ProjectGroup(props: {
           >
             {displayName(props.group()?.project ?? { worktree: props.group()?.directory ?? "" })}
           </span>
-          <span class="shrink-0 text-[11px] tabular-nums text-v2-text-text-muted">{entries().length}</span>
+          <span class="flex shrink-0 items-center gap-1.5">
+            <Show when={badge()}>
+              {(value) => (
+                <>
+                  <Show
+                    when={value().kind === "working"}
+                    fallback={
+                      <span
+                        aria-hidden="true"
+                        class="flex items-center gap-1"
+                        classList={{
+                          "text-v2-state-fg-warning": value().kind === "attention",
+                          "text-v2-state-fg-danger": value().kind === "failed",
+                        }}
+                      >
+                        <span class="size-1.5 rounded-full bg-current" />
+                        <span class="text-[11px] tabular-nums">{value().count}</span>
+                      </span>
+                    }
+                  >
+                    <ActivityRing width={12} height={12} style={{ color: "var(--v2-state-fg-info)" }} />
+                  </Show>
+                  <span class="sr-only">{badgeLabel(value())}</span>
+                </>
+              )}
+            </Show>
+            <span class="text-[11px] tabular-nums text-v2-text-text-muted">{entries().length}</span>
+          </span>
         </button>
         <Show when={!props.collapsed()}>
           <div class="mt-0.5 flex flex-col">
@@ -348,26 +413,13 @@ function ProjectGroup(props: {
                         >
                           {sessionTabTitle(entry().session.title, language.t("session.tab.session"))}
                         </span>
-                        <span class="flex shrink-0 items-center justify-end">
-                          <Show when={entry().status === "done" || entry().status === "failed"}>
-                            <span class="sr-only">{language.t(`sidebar.inbox.status.${entry().status}`)}</span>
-                            <span
-                              aria-hidden="true"
-                              class="me-1.5 size-[7px] shrink-0 rounded-full"
-                              classList={{
-                                "bg-v2-state-fg-danger": entry().status === "failed",
-                                "bg-v2-background-bg-accent": entry().status === "done",
-                              }}
-                            />
-                          </Show>
-                          <Show
-                            when={entry().status === "working"}
-                            fallback={
-                              <span class="text-[11px] tabular-nums text-v2-text-text-muted">{props.age(entry())}</span>
-                            }
-                          >
-                            <span class="sr-only">{language.t("sidebar.inbox.status.working")}</span>
-                            <ActivityRing class="shrink-0 text-v2-icon-icon-muted" />
+                        <span class="flex shrink-0 items-center gap-1.5">
+                          <span class="flex size-4 items-center justify-center">
+                            <SessionStatusMark status={entry().status} />
+                          </span>
+                          <span class="text-[11px] tabular-nums text-v2-text-text-muted">{props.age(entry())}</span>
+                          <Show when={statusLabel(entry().status)}>
+                            {(label) => <span class="sr-only">{label()}</span>}
                           </Show>
                         </span>
                       </button>
@@ -390,5 +442,29 @@ function ProjectGroup(props: {
         </Show>
       </section>
     </Show>
+  )
+}
+
+// The row's state mark doubles as the scannable signal: shape and color, not color alone.
+function SessionStatusMark(props: { status: InboxEntry["status"] }) {
+  return (
+    <Switch>
+      <Match when={props.status === "working"}>
+        {/* The ring's own unlayered CSS beats utility classes, so the status color goes inline. */}
+        <ActivityRing width={16} height={16} style={{ color: "var(--v2-state-fg-info)" }} />
+      </Match>
+      <Match when={props.status === "approval"}>
+        <Icon name="circle-exclamation" size="small" class="text-v2-state-fg-warning" />
+      </Match>
+      <Match when={props.status === "input"}>
+        <Icon name="help" size="small" class="text-v2-state-fg-warning" />
+      </Match>
+      <Match when={props.status === "failed"}>
+        <Icon name="close" size="small" class="text-v2-state-fg-danger" />
+      </Match>
+      <Match when={props.status === "done"}>
+        <Icon name="check" size="small" class="text-v2-state-fg-success" />
+      </Match>
+    </Switch>
   )
 }
