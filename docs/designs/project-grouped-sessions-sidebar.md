@@ -102,6 +102,33 @@ OpenCode Desktop V2 现有三种界面模式，没有一个以「项目」为组
 
 规则：**只增不改**，不改格式、不重排 import、不顺手修上游代码。每次合上游后按此表逐项检查，而不是重新推理。
 
+### 实测接缝清单（2026-11-09 复核，取代上表）
+
+上表是写代码前的预算。实现完成后实际触碰上游文件 8 个（+53/−9 行），其余 509 行在新增文件里。按「合并时最可能冲突」排序：
+
+| 上游文件 | 本地改动 | 上游近 200 提交命中 | 说明 |
+| --- | --- | --- | --- |
+| `shell/titlebar/titlebar.tsx` | +9/−4 | 78 | inbox 的 `<Show>` 改为 `<Switch>` + 两个 `<Match>`；`fallback` 整段保持字节不变 |
+| `settings/model.tsx` | +2/−1 | 50 | `tabLayout` 字面量加 `"projects"`；上游每加一种模式都会改这一行 |
+| `runtime/i18n/en.ts` | +10 | 200 | 仅增键，插在 `sidebar.inbox.elapsed.*` 与 `interfaceMode.*` 之后 |
+| `settings/general/interface-mode.tsx` | +21 | 5 | `modes` 数组加一项 + 预览块 |
+| `shell/shell.tsx` | +5/−1 | 53 | `--sidebar-divider-bleed` 覆盖 Projects 模式（2026-11-09 修复新增的接缝，只放宽条件，不影响其它模式） |
+| `shell/titlebar/inbox.tsx` | +2/−1 | 12 | ActivityRing 观感，见「已知取舍」 |
+| `shell/titlebar/project-session-row.tsx` | +2/−1 | 2 | 同上 |
+| `home/sessions/view.tsx` | +2/−1 | 21 | 同上 |
+
+### 合并演练结果（2026-11-09）
+
+- 上游 `upstream/dev` = `12a661ea40`，领先上次合并点 `6aef6aa81e` 13 个提交。
+- `git merge-tree --write-tree --name-only upstream/dev HEAD` 退出码 0，无冲突。
+- 结论：文本冲突受控。但 `packages/app/src/shell/` 是上游最热的目录（近 200 提交全部命中），冲突是时间问题而非结构问题；解决方式基本都是「两边都留」。
+
+### 已知取舍（复查时不要「顺手修」）
+
+1. **与上游 `SidebarOrganized` 并存**：上游 2026-11-04（`2bb49886d7`）已用「vertical + `general.sidebarOrganize=projects`」实现项目分组侧栏（实验设置，默认关）。本分支是同日开始的并行实现，未复用它，因为数据源与交互不同（inbox 索引 vs Home 分页索引；本模式替换整个 tab 栏）。代价：上游对该组件的改进不会自动进入 Projects 模式；本项目模式也没有项目右键菜单、项目内新建会话、归档会话。若上游模式成熟到够用，可以整体放弃本实现，冲突面归零。
+2. **`ActivityRing` 观感**：`packages/ui/src/feedback/activity-ring/activity-ring.css` 把 `color` 写在无 layer 的 `[data-component="activity-ring"]` 规则里，而 Tailwind v4 的 utility 在 `@layer utilities`，无 layer 规则永远胜出，所以调用点的颜色 class 无效。本分支在 3 个调用点用内联样式（16px + `--v2-icon-icon-base`）。根因修法是把该规则放进 layer，但那会同时改变所有调用点的实际观感，无法在当前环境验证，故不做。
+3. **持久化降级**：`tabLayout` 是持久化 union。用纯上游构建读同一个 profile 时，`"projects"` 解码失败会让整个 `settings.v3` 键被删除并回默认值（`runtime/persistence/storage.ts` 的 `readCurrent` → `normalize`）。不崩溃，但会丢设置；fork 内部升级/回退不受影响。
+
 ### 实施顺序（三个原子提交）
 
 1. `feat(app): add projects interface mode value and shell dispatch` —— 只为让一个空侧栏能显示，验证不破坏现有三种模式。
@@ -112,7 +139,7 @@ UI 组件全部放在新目录 `packages/app/src/projects/`，只有第 1 个提
 
 ## Open Questions
 
-1. `interfaceMode` 枚举定义在哪个文件，是否被持久化到磁盘配置（决定旧版本回退时会不会报错）。
+1. `interfaceMode` 枚举定义在哪个文件，是否被持久化到磁盘配置（决定旧版本回退时会不会报错）。**已确认**：`settings/model.tsx` 的 `tabLayout`，持久化在 `settings.v3`；未知值会让整个键被删除回默认值，不崩溃但会丢设置。
 2. 会话索引里项目归属用哪个字段（`projectID` / `directory` / worktree 路径），多 worktree 是否算同一项目。
 3. "最近修改"取 `updated`、`time.updated` 还是最后一条消息时间；有运行中会话时该字段是否实时更新。
 4. 每个项目的会话总数是否需要额外查询（若索引只返回首页数据，`Show more` 需要分页）。
