@@ -156,6 +156,9 @@ function betaNotes(ctx: SetupContext<typeof definition>) {
  * features and fixes of the beta builds since then. The first run and a disabled What's New only remember the version.
  */
 function whatsNew(ctx: SetupContext<typeof definition>) {
+  // Dev builds come from this repository, so they must not show the official release notes.
+  if (ctx.app.channel === "dev") return
+
   const seen = ctx.stores.seen
   const controller = new AbortController()
 
