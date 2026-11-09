@@ -8,6 +8,7 @@ import { RestrictToVerticalAxis } from "@dnd-kit/abstract/modifiers"
 import { RestrictToElement } from "@dnd-kit/dom/modifiers"
 import { Icon } from "@opencode/ui/icon"
 import { ActivityRing } from "@opencode/ui/activity-ring"
+import { Loader } from "@opencode/ui/loader"
 import { displayName } from "@opencode/ui/project-avatar"
 import { arrayMove } from "@/runtime/array-move"
 import { useLanguage } from "@/runtime/i18n/language"
@@ -198,7 +199,17 @@ export function SidebarProjects() {
       <Show
         when={groups().length > 0}
         fallback={
-          <p class="px-2 py-3 text-[13px] leading-4 text-v2-text-text-muted">{language.t("sidebar.projects.empty")}</p>
+          <Show
+            when={inbox.loading()}
+            fallback={
+              <p class="px-2 py-3 text-[13px] leading-4 text-v2-text-text-muted">{language.t("sidebar.projects.empty")}</p>
+            }
+          >
+            {/* Before the index settles an empty list would claim the person has no sessions. */}
+            <div class="flex justify-center p-2">
+              <Loader role="img" aria-hidden="false" aria-label={language.t("common.loading")} />
+            </div>
+          </Show>
         }
       >
         <div
