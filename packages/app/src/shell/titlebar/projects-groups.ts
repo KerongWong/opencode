@@ -20,6 +20,23 @@ export function sessionProjectDirectory(
 }
 
 /**
+ * The group a session belongs to: its server plus the project checkout that owns the session's directory, or the
+ * shared `ungrouped` key when the session has no project. Removed projects are matched by this key, so it depends only
+ * on the server and the checkout, never on a label or an order the person can change from the sidebar.
+ */
+export function projectGroupFor(
+  server: string,
+  project: { readonly worktrees?: readonly ProjectDirectory[] } | undefined,
+  directory: string,
+) {
+  if (!project) return { key: "ungrouped", directory }
+
+  const checkout = sessionProjectDirectory(project, directory)
+
+  return { key: `${server}\u0000${comparablePath(checkout)}`, directory: checkout }
+}
+
+/**
  * Titles for directory groups. Folder names repeat when one repository is checked out more than once, so a
  * duplicate gains its parent folder name, and the full directory when the parent name is ambiguous too.
  */

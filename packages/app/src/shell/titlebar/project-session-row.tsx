@@ -190,7 +190,7 @@ export function ProjectSessionRow(props: {
   )
 }
 
-export function RenameDialog(props: { title: string; onRename: (title: string) => Promise<void> }) {
+export function RenameDialog(props: { title: string; onRename: (title: string) => Promise<void>; label?: string }) {
   const language = useLanguage()
 
   const dialog = useDialog()
@@ -254,7 +254,7 @@ export function RenameDialog(props: { title: string; onRename: (title: string) =
   return (
     <Dialog fit>
       <DialogHeader hideClose>
-        <DialogTitleGroup title={language.t("command.session.rename")} />
+        <DialogTitleGroup title={props.label ?? language.t("command.session.rename")} />
       </DialogHeader>
       <form
         class="contents"
@@ -268,7 +268,7 @@ export function RenameDialog(props: { title: string; onRename: (title: string) =
             ref={(element) => (input = element)}
             appearance="large"
             class="!w-full self-stretch"
-            aria-label={language.t("command.session.rename")}
+            aria-label={props.label ?? language.t("command.session.rename")}
             value={view().draft}
             disabled={view().inputDisabled}
             autofocus
