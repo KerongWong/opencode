@@ -13,7 +13,9 @@ import { displayName } from "@opencode/ui/project-avatar"
 import { arrayMove } from "@/runtime/array-move"
 import { useLanguage } from "@/runtime/i18n/language"
 import { SessionTabAvatarView } from "@/shell/layout/session-tab-avatar"
+import { pathKey } from "@/workspaces/path-key"
 import { createSessionInbox, type InboxEntry } from "./inbox-model"
+import { directoryGroupLabels, sessionProjectDirectory } from "./projects-groups"
 import { createProjectsSidebarState } from "./projects-state"
 import { sessionTabTitle } from "./tab-title"
 
@@ -32,14 +34,16 @@ const STATUS_LABEL = {
   done: "sidebar.inbox.status.done",
 } as const
 
-type ProjectGroup = {
+type DirectoryGroup = {
   key: string
   entries: InboxEntry[]
   directory: string
   project: ReturnType<InboxEntry["ctx"]["projects"]["forSession"]>
 }
 
-/** The Projects interface mode: sessions grouped by project in place of vertical tabs. */
+type ProjectGroup = DirectoryGroup & { label: string }
+
+/** The Projects interface mode: sessions grouped by local project checkout in place of vertical tabs. */
 export function SidebarProjects() {
   const language = useLanguage()
   const inbox = createSessionInbox()
@@ -53,12 +57,18 @@ export function SidebarProjects() {
   // Entries arrive newest first, so the first entry of a group dates it. Ungrouped sessions go last rather than
   // disappearing: a session without a project is still a session a person can open.
   const groups = createMemo(() => {
-    const map = new Map<string, ProjectGroup>()
+    const map = new Map<string, DirectoryGroup>()
 
     inbox.entries().forEach((entry) => {
       const project = entry.ctx.projects.forSession(entry.session)
-      const directory = project?.worktree ?? entry.session.location.directory
-      const key = project ? `${entry.server}\0${project.worktree}` : "ungrouped"
+
+      // Clones of one repository share a project ID, so a group follows the local checkout instead: two working
+      // copies of the same repository stay separate rows.
+      const directory = project
+        ? sessionProjectDirectory(project, entry.session.location.directory)
+        : entry.session.location.directory
+
+      const key = project ? `${entry.server}\0${pathKey(directory)}` : "ungrouped"
       const group = map.get(key)
 
       if (group) {
@@ -74,7 +84,7 @@ export function SidebarProjects() {
     // the placed ones, so a newly discovered project never jumps into the middle of a hand-made order.
     const rank = new Map(sidebar.order().map((key, index) => [key, index] as const))
 
-    return [...map.values()].sort((a, b) => {
+    const sorted = [...map.values()].sort((a, b) => {
       if (a.key === "ungrouped") return 1
 
       if (b.key === "ungrouped") return -1
@@ -101,6 +111,19 @@ export function SidebarProjects() {
         )
       )
     })
+
+    const labels = directoryGroupLabels(
+      sorted.map((group) => ({
+        key: group.key,
+        directory: group.directory,
+        title: displayName(group.project ?? { worktree: group.directory }),
+      })),
+    )
+
+    return sorted.map((group): ProjectGroup => ({
+      ...group,
+      label: labels.get(group.key) ?? displayName(group.project ?? { worktree: group.directory }),
+    }))
   })
 
   // Key the rendered list by group keys, not by the group objects: the inbox rebuilds every group on each update, and
@@ -371,7 +394,7 @@ function ProjectGroup(props: {
             dir="auto"
             class="min-w-0 flex-1 truncate text-[14px] leading-4 font-medium tracking-[-0.04px] text-v2-text-text-base"
           >
-            {displayName(props.group()?.project ?? { worktree: props.group()?.directory ?? "" })}
+            {props.group()?.label ?? ""}
           </span>
           <span class="flex shrink-0 items-center gap-1.5">
             <Show when={badge()}>
