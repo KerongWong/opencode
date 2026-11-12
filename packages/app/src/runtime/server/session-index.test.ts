@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import type { SessionInfo } from "@opencode/client/promise"
+import { parseHomeSessionIndex } from "@/home/sessions/index"
 import { mergeRootSessionIndex } from "@/runtime/server/session-index"
 import { projectGroupFor } from "@/shell/titlebar/projects-groups"
 
@@ -120,5 +121,49 @@ describe("bounded known window", () => {
 
     expect(mergeRootSessionIndex([a, b], [g], inbox).map((row) => row.id)).toEqual(["a", "b", "g"])
     expect(mergeRootSessionIndex([a, b], [g], projects).map((row) => row.id)).toEqual(["a", "b"])
+  })
+})
+
+// The page the row source receives is the server's window. A page that exists but holds no active root is not the same
+// thing as no page at all: the Projects view must show no row rather than fall back to every locally known root.
+describe("fetched page", () => {
+  const a = session("a", { time: { created: 1, updated: 300 }, location: { directory: "/repo" } })
+  const b = session("b", { time: { created: 1, updated: 200 }, location: { directory: "/repo" } })
+  const c = session("c", { time: { created: 1, updated: 100 }, location: { directory: "/other" } })
+  const d = session("d", { time: { created: 1, updated: 400 }, location: { directory: "/other" } })
+
+  // A bulk cleanup archives every root the server has. Archiving bumps `time.updated`, so the 50 newest rows are all
+  // archived and the parsed page is empty: the slots are spent before the archived rows are dropped.
+  const archivedPage = Array.from({ length: 50 }, (_, i) =>
+    session(`archived-${i}`, {
+      time: { created: 1, updated: 1_000_000 - i, archived: 1_001_000 },
+      location: { directory: "/repo" },
+    }),
+  )
+
+  test("a fetched page the archive filter empties adds no project row", () => {
+    const page = parseHomeSessionIndex(archivedPage)
+    expect(page).toEqual([])
+
+    const rows = mergeRootSessionIndex(page, [c, d], { includeArchived: false, boundedKnown: true })
+
+    expect(rows).toEqual([])
+    expect(projectKeys(rows)).not.toContain("srv\u0000/other")
+  })
+
+  test("the archived-page state shows the same project rows after a restart", () => {
+    const options = { includeArchived: false, boundedKnown: true }
+    const page = parseHomeSessionIndex(archivedPage)
+
+    expect(projectKeys(mergeRootSessionIndex(page, [c], options))).toEqual(
+      projectKeys(mergeRootSessionIndex(page, [], options)),
+    )
+  })
+
+  test("a known root created after a non-empty page still joins", () => {
+    const rows = mergeRootSessionIndex([a, b], [d], { includeArchived: false, boundedKnown: true })
+
+    expect(rows.map((row) => row.id)).toEqual(["a", "b", "d"])
+    expect(projectKeys(rows)).toEqual(["srv\u0000/repo", "srv\u0000/other"])
   })
 })
