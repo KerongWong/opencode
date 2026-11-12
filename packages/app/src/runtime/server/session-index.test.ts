@@ -107,8 +107,8 @@ describe("bounded known window", () => {
     ])
   })
 
-  test("with no index the known roots are the list", () => {
-    const rows = mergeRootSessionIndex([], [c, child, g], { includeArchived: false, boundedKnown: true })
+  test("with no page fetched the known roots are the list", () => {
+    const rows = mergeRootSessionIndex(undefined, [c, child, g], { includeArchived: false, boundedKnown: true })
 
     expect(rows.map((row) => row.id)).toEqual(["c"])
   })

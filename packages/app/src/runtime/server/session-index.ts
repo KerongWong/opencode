@@ -10,20 +10,29 @@ export type RootSessionIndexOptions = {
 /**
  * Merge live metadata into indexed roots. Only a completed run advances an indexed row's recency.
  *
+ * `undefined` as the index means no page has been fetched yet, and the known roots are then the list. Any array means a
+ * fetched page, so an empty page bounds instead of falling back.
+ *
  * `boundedKnown` makes the index page the row source: a known root joins only when it is indexed already or its
- * `time.updated` is at least the oldest indexed row's, so opening old history cannot add a row. With no indexed page
- * the known roots are the list (the offline fallback).
+ * `time.updated` is at least the oldest indexed row's, so opening old history cannot add a row. The floor is reduced
+ * over the rows the final filter can keep, so an archived or child row in the page cannot lower it.
  */
 export function mergeRootSessionIndex(
-  indexed: readonly SessionInfo[],
+  indexed: readonly SessionInfo[] | undefined,
   known: readonly SessionInfo[],
   options: RootSessionIndexOptions = {},
 ) {
   const floor =
-    options.boundedKnown && indexed.length
-      ? indexed.reduce((min, info) => Math.min(min, info.time.updated), Number.POSITIVE_INFINITY)
+    options.boundedKnown && indexed !== undefined
+      ? indexed.reduce(
+          (min, info) =>
+            info.parentID || (options.includeArchived === false && info.time.archived !== undefined)
+              ? min
+              : Math.min(min, info.time.updated),
+          Number.POSITIVE_INFINITY,
+        )
       : undefined
-  const rows = new Map(indexed.map((info) => [info.id, info]))
+  const rows = new Map((indexed ?? []).map((info) => [info.id, info]))
 
   for (const info of known) {
     if (floor !== undefined && !rows.has(info.id) && info.time.updated < floor) continue

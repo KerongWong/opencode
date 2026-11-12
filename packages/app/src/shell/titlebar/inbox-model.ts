@@ -129,7 +129,7 @@ export function createSessionInbox(options: { archived?: boolean } = {}) {
       enabled: item.ctx.sdk.connection.status() === "connected",
       queryFn: ({ signal }: { signal: AbortSignal }) =>
         item.ctx.sdk.api.session
-          .list({ limit: INDEX_LIMIT, order: "desc", parentID: null }, { signal })
+          .list({ limit: INDEX_LIMIT, order: "desc", parentID: null, archived: false }, { signal })
           .then((response) => parseHomeSessionIndex(response.data)),
       retry: false,
       staleTime: 30_000,
@@ -193,14 +193,12 @@ export function createSessionInbox(options: { archived?: boolean } = {}) {
         }
 
         // Locally known sessions come last so live archive and unarchive events win over cached indexes.
-        // Projects (no `archived` option) drops archived rows; the Inbox view keeps them for its archived section.
-        // The floor bounds the Projects view only: the Inbox view merges two pages, and keeps known rows so the row it
-        // just archived cannot leave its archived section.
+        // A fetched page always bounds the Projects view; `undefined` means no page has been fetched yet, so the known
+        // roots are the list (first paint and offline). The Inbox view keeps known rows for its archived section.
+        const active = queries[index]?.data?.()
+        const archived = options.archived ? archivedQueries[index]?.data?.() : undefined
         const sessions = mergeRootSessionIndex(
-          [
-            ...(queries[index]?.data?.() ?? []),
-            ...(options.archived ? (archivedQueries[index]?.data?.() ?? []) : []),
-          ],
+          active === undefined && archived === undefined ? undefined : [...(active ?? []), ...(archived ?? [])],
           data.session.known(),
           { includeArchived: options.archived === true, boundedKnown: options.archived !== true },
         )
