@@ -30,4 +30,19 @@ describe("root session index merge", () => {
 
     expect(keys).toEqual(["srv\u0000/repo"])
   })
+
+  test("the default keeps archived rows for the Inbox view", () => {
+    expect(mergeRootSessionIndex([], [archivedRoot]).map((row) => row.id)).toEqual(["archived"])
+    expect(mergeRootSessionIndex([], [archivedRoot], { includeArchived: true }).map((row) => row.id)).toEqual([
+      "archived",
+    ])
+  })
+
+  test("a live archive wins over a cached active index row", () => {
+    const index = [session("s1", { time: { created: 1, updated: 10 } })]
+    const archived = session("s1", { time: { created: 1, updated: 20, archived: 99 } })
+
+    expect(mergeRootSessionIndex(index, [archived], { includeArchived: false })).toEqual([])
+    expect(mergeRootSessionIndex(index, [archived]).map((row) => row.time.archived)).toEqual([99])
+  })
 })
