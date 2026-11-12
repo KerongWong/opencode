@@ -197,6 +197,7 @@ export function createSessionInbox(options: { archived?: boolean } = {}) {
         // roots are the list (first paint and offline). The Inbox view keeps known rows for its archived section.
         const active = queries[index]?.data?.()
         const archived = options.archived ? archivedQueries[index]?.data?.() : undefined
+
         const sessions = mergeRootSessionIndex(
           active === undefined && archived === undefined ? undefined : [...(active ?? []), ...(archived ?? [])],
           data.session.known(),
