@@ -193,12 +193,14 @@ export function createSessionInbox(options: { archived?: boolean } = {}) {
         }
 
         // Locally known sessions come last so live archive and unarchive events win over cached indexes.
+        // Projects (no `archived` option) drops archived rows; the Inbox view keeps them for its archived section.
         const sessions = mergeRootSessionIndex(
           [
             ...(queries[index]?.data?.() ?? []),
             ...(options.archived ? (archivedQueries[index]?.data?.() ?? []) : []),
           ],
           data.session.known(),
+          { includeArchived: options.archived === true },
         )
 
         return data.session
