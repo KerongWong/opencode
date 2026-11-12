@@ -166,4 +166,38 @@ describe("fetched page", () => {
     expect(rows.map((row) => row.id)).toEqual(["a", "b", "d"])
     expect(projectKeys(rows)).toEqual(["srv\u0000/repo", "srv\u0000/other"])
   })
+
+  // The floor comes from the rows the merge can keep: an archived or child row in the page is dropped by the final
+  // filter, so it cannot lower the floor and let a known row the window excludes join.
+  test("an archived or child row in the fetched page does not lower the floor", () => {
+    const archivedAt = session("archived-at-100", {
+      time: { created: 1, updated: 100, archived: 50 },
+      location: { directory: "/other" },
+    })
+
+    const childAt = session("child-at-50", {
+      parentID: "a",
+      time: { created: 1, updated: 50 },
+      location: { directory: "/other" },
+    })
+
+    const rows = mergeRootSessionIndex([a, b, archivedAt, childAt], [c], {
+      includeArchived: false,
+      boundedKnown: true,
+    })
+
+    expect(rows.map((row) => row.id)).toEqual(["a", "b"])
+  })
+
+  // The Inbox view runs unbounded, so its first paint still has the archived row it knows before any page is fetched.
+  test("the Inbox view keeps a known archived row with no page", () => {
+    const g = session("g-archived", {
+      time: { created: 1, updated: 100, archived: 50 },
+      location: { directory: "/other" },
+    })
+
+    expect(mergeRootSessionIndex(undefined, [g], { includeArchived: true, boundedKnown: false }).map((row) => row.id)).toEqual([
+      "g-archived",
+    ])
+  })
 })
