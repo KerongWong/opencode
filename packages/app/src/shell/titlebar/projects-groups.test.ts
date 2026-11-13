@@ -53,6 +53,55 @@ describe("projectGroupFor", () => {
   test("sessions without a project share the ungrouped key", () => {
     expect(projectGroupFor("srv", undefined, "D:/scratch")).toEqual({ key: "ungrouped", directory: "D:/scratch" })
   })
+
+  test("keys the same sessions the same way before and after the inventory arrives", () => {
+    const sessions = ["C:/work/app/packages/ui", "C:/work/app/.worktrees/feature/src"]
+
+    // Before the inventory: metadata carries the canonical worktree, and `sandboxes` holds the saved checkouts.
+    const sandboxesOnly = {
+      worktree: "C:/work/app",
+      sandboxes: ["C:/work/app/.worktrees/feature"],
+      worktrees: [{ directory: "C:/work/app" }],
+    }
+    // After: `withWorktreeInventory` recomputes `sandboxes` from the listed inventory minus the canonical root.
+    const inventoried = {
+      worktree: "C:/work/app",
+      sandboxes: ["C:/work/app/.worktrees/feature"],
+      worktrees: [{ directory: "C:/work/app" }, { directory: "C:/work/app/.worktrees/feature" }],
+    }
+
+    const before = sessions.map((directory) => projectGroupFor("srv", sandboxesOnly, directory).key)
+    const after = sessions.map((directory) => projectGroupFor("srv", inventoried, directory).key)
+
+    expect(before).toEqual(after)
+    expect(before).toEqual(["srv\u0000C:/work/app", "srv\u0000C:/work/app/.worktrees/feature"])
+  })
+
+  test("keeps two clones of one repository on separate rows", () => {
+    const project = { worktree: "C:/work/app", sandboxes: ["D:/branch/app"] }
+
+    expect(projectGroupFor("srv", project, "C:/work/app/packages/ui").key).toBe("srv\u0000C:/work/app")
+    expect(projectGroupFor("srv", project, "D:/branch/app/packages/ui").key).toBe("srv\u0000D:/branch/app")
+  })
+
+  test("moves a session into a deeper checkout the inventory reveals", () => {
+    const sandboxesOnly = {
+      worktree: "C:/work/app",
+      sandboxes: ["C:/work/app/.worktrees/feature"],
+      worktrees: [{ directory: "C:/work/app" }],
+    }
+    const inventoried = {
+      worktree: "C:/work/app",
+      sandboxes: ["C:/work/app/.worktrees/feature"],
+      worktrees: [{ directory: "C:/work/app" }, { directory: "C:/work/app/.worktrees/feature" }],
+    }
+
+    expect(projectGroupFor("srv", inventoried, "C:/work/app/.worktrees/feature/src").key).toBe(
+      "srv\u0000C:/work/app/.worktrees/feature",
+    )
+    expect(projectGroupFor("srv", sandboxesOnly, "C:/work/app/packages/ui").key).toBe("srv\u0000C:/work/app")
+    expect(projectGroupFor("srv", inventoried, "C:/work/app/packages/ui").key).toBe("srv\u0000C:/work/app")
+  })
 })
 
 describe("directoryGroupLabels", () => {
