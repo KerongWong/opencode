@@ -96,12 +96,25 @@ function WorkspaceSidebarBody(props: { conn: ServerConnection.Any }) {
   let restoreFrame = 0
   let scrollFrame = 0
 
-  // A ref runs before its children render, so the position is restored a frame after mount.
+  // A ref runs before its children render, so the position is restored a frame after mount. Desktop
+  // storage hydrates asynchronously, so the hydration that lands after mount restores it too.
+  const restoreScroll = () => {
+    if (scroller && scroller.scrollTop === 0) scroller.scrollTop = registry.scrollTop()
+  }
+
   onMount(() => {
-    restoreFrame = requestAnimationFrame(() => {
-      if (scroller) scroller.scrollTop = registry.scrollTop()
-    })
+    restoreFrame = requestAnimationFrame(restoreScroll)
   })
+
+  createEffect(
+    on(
+      registry.ready,
+      (ready) => {
+        if (ready) restoreScroll()
+      },
+      { defer: true },
+    ),
+  )
 
   // Scrolling coalesces to one persisted write per frame, with the final position of that frame.
   const handleScroll = () => {
