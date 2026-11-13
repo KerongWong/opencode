@@ -1,5 +1,5 @@
 import type { SessionInfo } from "@opencode/client/promise"
-import { type Accessor } from "solid-js"
+import { createEffect, on, onCleanup, untrack, type Accessor } from "solid-js"
 import { createStore, produce } from "solid-js/store"
 import type { ServerConnection } from "@/runtime/server/registry"
 import type { ServerCtx } from "@/runtime/server/runtime"
@@ -12,6 +12,9 @@ export type RowKey = string
  * previous sessions on screen instead of flashing the row empty.
  */
 export type RowSessions = { status: "loading" | "ready" | "failed"; sessions: SessionInfo[] }
+
+/** A probe answer is only ever the filesystem's, never inferred from how many sessions exist. */
+export type Availability = "checking" | "available" | "unavailable"
 
 /** The registry key is the row identity everywhere; a row never invents a second spelling. */
 export function rowKeyFor(entry: WorkspaceEntry, platform: HostPlatform) {
@@ -52,6 +55,31 @@ export function matchCreated(entries: WorkspaceEntry[], directory: string, platf
   return match ? rowKeyFor(match, platform) : undefined
 }
 
+/**
+ * REG-04: the server's original spelling of a row's directory. A non-empty list is the only
+ * trustworthy source; an empty one leaves the caller on its local normalization.
+ */
+export function serverSpelling(
+  entry: WorkspaceEntry,
+  sessions: readonly { id?: string; location?: { directory?: string } }[],
+  platform: HostPlatform,
+) {
+  const directory = sessions[0]?.location?.directory
+
+  if (directory === undefined) return undefined
+
+  return directoryKey(directory, platform) === rowKeyFor(entry, platform) ? directory : undefined
+}
+
+/**
+ * Availability is a filesystem answer, so every row that finished listing is probed — including a
+ * row with history, because `session.list` is a database filter and keeps returning sessions after
+ * the directory was renamed or deleted.
+ */
+export function needsAvailabilityProbe(row: RowSessions) {
+  return row.status === "ready"
+}
+
 /** Synchronous row read for the renderer: an unloaded row reads as loading, never throws. */
 export function sessionsOf(rows: Record<RowKey, RowSessions>, key: RowKey) {
   return rows[key] ?? { status: "loading", sessions: [] }
@@ -60,8 +88,9 @@ export function sessionsOf(rows: Record<RowKey, RowSessions>, key: RowKey) {
 const SESSION_LIST_LIMIT = 50
 
 /**
- * Owns every read the sidebar makes: one `session.list({ directory })` per visible row, and the
- * in-memory `sessionID → row` map that lets id-only events refresh a single row.
+ * Owns every read the sidebar makes: one `session.list({ directory })` per visible row, one
+ * `file.list` availability probe per load, the REG-04 spelling reconciliation, and the in-memory
+ * `sessionID → row` map that lets id-only events refresh a single row.
  */
 export function createWorkspaceSessions(input: {
   /** The row source: the renderer passes `() => visible(registry.entries())`. */
@@ -69,12 +98,21 @@ export function createWorkspaceSessions(input: {
   connection: Accessor<ServerConnection.Any | undefined>
   ctx: Accessor<ServerCtx | undefined>
   platform: Accessor<HostPlatform>
+  /** Called when a row answers with a different server spelling, so the registry can adopt it too. */
+  onServerSpelling?: (directory: string, serverDirectory: string) => void
 }) {
-  const [state, setState] = createStore<{ rows: Record<RowKey, RowSessions> }>({ rows: {} })
+  const [state, setState] = createStore<{
+    rows: Record<RowKey, RowSessions>
+    availability: Record<RowKey, Availability>
+    spellings: Record<RowKey, string>
+  }>({ rows: {}, availability: {}, spellings: {} })
 
   const sessionRows = new Map<string, RowKey>()
   const inflight = new Set<RowKey>()
   const dirty = new Set<RowKey>()
+  const pendingProbe = new Set<RowKey>()
+  const scheduled = new Set<RowKey>()
+  let flushScheduled = false
 
   const entryForKey = (key: RowKey) => {
     const platform = input.platform()
@@ -84,13 +122,40 @@ export function createWorkspaceSessions(input: {
 
   const forget = (key: RowKey) => {
     setState("rows", produce((rows) => void delete rows[key]))
+    setState("availability", produce((availability) => void delete availability[key]))
+    setState("spellings", produce((spellings) => void delete spellings[key]))
 
     for (const [sessionID, row] of sessionRows) if (row === key) sessionRows.delete(sessionID)
   }
 
-  const fetchRow = async (entry: WorkspaceEntry, key: RowKey) => {
+  const adoptSpelling = (entry: WorkspaceEntry, key: RowKey, spelling: string) => {
+    if (state.spellings[key] !== spelling) setState("spellings", key, spelling)
+
+    if (spelling !== entry.directory) input.onServerSpelling?.(entry.directory, spelling)
+  }
+
+  const probeAvailability = async (entry: WorkspaceEntry, key: RowKey) => {
+    const ctx = input.ctx()
+
+    if (!ctx) return
+
+    setState("availability", key, "checking")
+
+    try {
+      await ctx.sdk.api.file.list({
+        location: { directory: queryDirectoryFor(entry, input.platform(), state.spellings) },
+      })
+      setState("availability", key, "available")
+    } catch {
+      setState("availability", key, "unavailable")
+    }
+  }
+
+  const fetchRow = async (entry: WorkspaceEntry, key: RowKey, probe: boolean) => {
     if (inflight.has(key)) {
       dirty.add(key)
+
+      if (probe) pendingProbe.add(key)
 
       return
     }
@@ -103,7 +168,7 @@ export function createWorkspaceSessions(input: {
 
     try {
       const result = await ctx.sdk.api.session.list({
-        directory: queryDirectoryFor(entry, input.platform(), {}),
+        directory: queryDirectoryFor(entry, input.platform(), state.spellings),
         limit: SESSION_LIST_LIMIT,
         parentID: null,
         order: "desc",
@@ -112,6 +177,12 @@ export function createWorkspaceSessions(input: {
       setState("rows", key, { status: "ready", sessions: result.data })
 
       for (const [sessionID, row] of attributeSessions(result.data, key)) sessionRows.set(sessionID, row)
+
+      const spelling = serverSpelling(entry, result.data, input.platform())
+
+      if (spelling !== undefined) adoptSpelling(entry, key, spelling)
+
+      if (probe && needsAvailabilityProbe(state.rows[key]!)) await probeAvailability(entry, key)
     } catch {
       const row = state.rows[key]
 
@@ -119,9 +190,10 @@ export function createWorkspaceSessions(input: {
     } finally {
       inflight.delete(key)
 
+      const rerunProbe = pendingProbe.delete(key)
       const rerun = dirty.delete(key) ? entryForKey(key) : undefined
 
-      if (rerun) void fetchRow(rerun, key)
+      if (rerun) void fetchRow(rerun, key, rerunProbe)
     }
   }
 
@@ -134,7 +206,48 @@ export function createWorkspaceSessions(input: {
       return
     }
 
-    void fetchRow(entry, key)
+    void fetchRow(entry, key, false)
+  }
+
+  /** Coalesces a burst of events into one refetch per row on the next microtask. */
+  const schedule = (key: RowKey) => {
+    scheduled.add(key)
+
+    if (flushScheduled) return
+
+    flushScheduled = true
+    queueMicrotask(() => {
+      flushScheduled = false
+
+      const keys = [...scheduled]
+
+      scheduled.clear()
+
+      for (const key of keys) refreshRow(key)
+    })
+  }
+
+  const renameSession = (key: RowKey, sessionID: string, title: string) => {
+    const index = state.rows[key]?.sessions.findIndex((session) => session.id === sessionID) ?? -1
+
+    if (index === -1) return
+
+    setState("rows", key, "sessions", index, "title", title)
+  }
+
+  const dropSession = (key: RowKey, sessionID: string) => {
+    const row = state.rows[key]
+
+    sessionRows.delete(sessionID)
+
+    if (!row) return
+
+    setState(
+      "rows",
+      key,
+      "sessions",
+      row.sessions.filter((session) => session.id !== sessionID),
+    )
   }
 
   /** Reconciles rows with `visible(entries)`; rows that left the registry drop their data. */
@@ -149,14 +262,108 @@ export function createWorkspaceSessions(input: {
       const key = rowKeyFor(entry, platform)
 
       if (!state.rows[key]) setState("rows", key, { status: "loading", sessions: [] })
-      void fetchRow(entry, key)
+      void fetchRow(entry, key, true)
     }
   }
 
+  /** REG-04: ask the server for its spelling of a freshly registered directory. */
+  const probeSpelling = async (entry: WorkspaceEntry) => {
+    const ctx = input.ctx()
+
+    if (!ctx || ctx.sdk.connection.status() !== "connected") return undefined
+
+    const platform = input.platform()
+    const key = rowKeyFor(entry, platform)
+
+    try {
+      const result = await ctx.sdk.api.session.list({
+        directory: queryDirectoryFor(entry, platform, state.spellings),
+        limit: 1,
+        parentID: null,
+        order: "desc",
+      })
+
+      const spelling = serverSpelling(entry, result.data, platform)
+
+      if (spelling === undefined) return undefined
+
+      adoptSpelling(entry, key, spelling)
+
+      return spelling
+    } catch {
+      return undefined
+    }
+  }
+
+  // Resubscribe whenever the controller identity changes; every handler reads the current entries.
+  createEffect(() => {
+    const ctx = input.ctx()
+
+    if (!ctx) return
+
+    onCleanup(
+      ctx.data.on("session.created", (event) => {
+        if (event.data.parentID !== undefined) return
+
+        const key = matchCreated(input.entries(), event.data.location.directory, input.platform())
+
+        if (key === undefined) return
+
+        sessionRows.set(event.data.sessionID, key)
+        schedule(key)
+      }),
+    )
+    onCleanup(
+      ctx.data.on("session.archived", (event) => {
+        const key = sessionRows.get(event.data.sessionID)
+
+        if (key !== undefined) schedule(key)
+      }),
+    )
+    onCleanup(
+      ctx.data.on("session.unarchived", (event) => {
+        const key = sessionRows.get(event.data.sessionID)
+
+        if (key !== undefined) schedule(key)
+      }),
+    )
+    onCleanup(
+      ctx.data.on("session.deleted", (event) => {
+        const key = sessionRows.get(event.data.sessionID)
+
+        if (key === undefined) return
+
+        dropSession(key, event.data.sessionID)
+        schedule(key)
+      }),
+    )
+    onCleanup(
+      ctx.data.on("session.renamed", (event) => {
+        const key = sessionRows.get(event.data.sessionID)
+
+        if (key !== undefined) renameSession(key, event.data.sessionID, event.data.title)
+      }),
+    )
+  })
+
+  // A reconnect reloads every visible row, which also re-probes directories the user may have
+  // restored. `untrack` keeps this effect from subscribing to the store writes `load` performs.
+  createEffect(
+    on(
+      () => input.ctx()?.sdk.connection.status(),
+      (status) => {
+        if (status === "connected") untrack(load)
+      },
+      { defer: true },
+    ),
+  )
+
   return {
     rows: () => state.rows,
+    availability: () => state.availability,
     load,
     refresh: load,
     refreshRow,
+    probeSpelling,
   }
 }

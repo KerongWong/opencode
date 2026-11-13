@@ -1,5 +1,18 @@
 import { describe, expect, test } from "bun:test"
-import { attributeSessions, matchCreated, queryDirectoryFor, rowKeyFor, rowKeyOf, sessionsOf } from "./sessions"
+import { createRoot } from "solid-js"
+import type { ServerConnection } from "@/runtime/server/registry"
+import type { ServerCtx } from "@/runtime/server/runtime"
+import {
+  attributeSessions,
+  createWorkspaceSessions,
+  matchCreated,
+  needsAvailabilityProbe,
+  queryDirectoryFor,
+  rowKeyFor,
+  rowKeyOf,
+  serverSpelling,
+  sessionsOf,
+} from "./sessions"
 import type { RowSessions } from "./sessions"
 import type { WorkspaceEntry } from "./registry"
 
@@ -90,5 +103,173 @@ describe("sessionsOf", () => {
     const row: RowSessions = { status: "ready", sessions: [] }
 
     expect(sessionsOf({ "d:/code/app": row }, "d:/code/app")).toBe(row)
+  })
+})
+
+describe("serverSpelling", () => {
+  const app = entry("D:/code/app")
+
+  test("returns the server's raw spelling when it belongs to the same row", () => {
+    expect(serverSpelling(app, [{ id: "ses_one", location: { directory: "d:/code/app" } }], "win32")).toBe(
+      "d:/code/app",
+    )
+  })
+
+  test("returns nothing for an empty list, a foreign directory or a session without a location", () => {
+    expect(serverSpelling(app, [], "win32")).toBeUndefined()
+    expect(serverSpelling(app, [{ id: "ses_one", location: { directory: "D:/code/other" } }], "win32")).toBeUndefined()
+    expect(serverSpelling(app, [{ id: "ses_one" }], "win32")).toBeUndefined()
+    expect(serverSpelling(entry("/srv/app"), [{ id: "ses_one", location: { directory: "/srv/APP" } }], "linux")).toBe(
+      undefined,
+    )
+  })
+})
+
+describe("needsAvailabilityProbe", () => {
+  test("probes every ready row, whether it lists sessions or not", () => {
+    expect(needsAvailabilityProbe({ status: "ready", sessions: [] })).toBe(true)
+  })
+
+  test("does not probe a row with no answer yet", () => {
+    expect(needsAvailabilityProbe({ status: "loading", sessions: [] })).toBe(false)
+    expect(needsAvailabilityProbe({ status: "failed", sessions: [] })).toBe(false)
+  })
+})
+
+const session = (id: string, directory: string, title = "Chat") => ({ id, title, location: { directory } })
+
+const tick = async () => {
+  await new Promise((resolve) => setTimeout(resolve, 0))
+  await new Promise((resolve) => setTimeout(resolve, 0))
+}
+
+function asServerCtx<T extends object>(input: T) {
+  // SAFETY: the factory reads only the fields this fixture provides; no other member of `ServerCtx` runs here.
+  return input as ServerCtx
+}
+
+function setup() {
+  const sessions: ReturnType<typeof session>[] = []
+  const listCalls: string[] = []
+  const fileCalls: string[] = []
+  const spellings: [string, string][] = []
+
+  const state = {
+    sessions,
+    listError: false,
+    fileError: false,
+    listCalls,
+    fileCalls,
+    spellings,
+  }
+
+  const ctx = {
+    data: {},
+    sdk: {
+      connection: { status: () => "connected" },
+      api: {
+        session: {
+          list(input: { directory: string }) {
+            listCalls.push(input.directory)
+
+            return state.listError ? Promise.reject(new Error("offline")) : Promise.resolve({ data: state.sessions })
+          },
+        },
+        file: {
+          list(input: { location?: { directory?: string } }) {
+            fileCalls.push(input.location?.directory ?? "")
+
+            return state.fileError ? Promise.reject(new Error("not found")) : Promise.resolve({ data: [] })
+          },
+        },
+      },
+    },
+  }
+
+  const connection: ServerConnection.Any = { type: "http", http: { url: "http://localhost:4096" } }
+
+  return {
+    state,
+    mount(entries: WorkspaceEntry[]) {
+      let api!: ReturnType<typeof createWorkspaceSessions>
+
+      const dispose = createRoot((dispose) => {
+        api = createWorkspaceSessions({
+          entries: () => entries,
+          connection: () => connection,
+          ctx: () => asServerCtx(ctx),
+          platform: () => "win32",
+          onServerSpelling: (directory, spelling) => state.spellings.push([directory, spelling]),
+        })
+
+        return dispose
+      })
+
+      return { api, dispose }
+    },
+  }
+}
+
+describe("createWorkspaceSessions", () => {
+  const app = entry("D:/code/app", 0)
+
+  test("loads a row and probes its directory even when the row lists sessions", async () => {
+    const fixture = setup()
+    fixture.state.sessions = [session("ses_one", "D:/code/app")]
+    const { api, dispose } = fixture.mount([app])
+
+    api.load()
+    await tick()
+
+    expect(api.rows()["d:/code/app"]?.status).toBe("ready")
+    expect(api.rows()["d:/code/app"]?.sessions.map((item) => item.id)).toEqual(["ses_one"])
+    expect(api.availability()["d:/code/app"]).toBe("available")
+    expect(fixture.state.fileCalls).toEqual(["D:/code/app"])
+    dispose()
+  })
+
+  test("marks a row unavailable when the directory probe fails, even with history", async () => {
+    const fixture = setup()
+    fixture.state.sessions = [session("ses_one", "D:/code/app")]
+    fixture.state.fileError = true
+    const { api, dispose } = fixture.mount([app])
+
+    api.load()
+    await tick()
+
+    expect(api.rows()["d:/code/app"]?.status).toBe("ready")
+    expect(api.availability()["d:/code/app"]).toBe("unavailable")
+    dispose()
+  })
+
+  test("probeSpelling adopts a non-empty server spelling and falls back to local normalization", async () => {
+    const fixture = setup()
+    fixture.state.sessions = [session("ses_one", "d:/code/app")]
+    const { api, dispose } = fixture.mount([app])
+
+    expect(await api.probeSpelling(app)).toBe("d:/code/app")
+    expect(fixture.state.spellings).toEqual([["D:/code/app", "d:/code/app"]])
+
+    fixture.state.sessions = []
+    expect(await api.probeSpelling(app)).toBeUndefined()
+    dispose()
+  })
+
+  test("self-heals an old record's spelling on the first non-empty load", async () => {
+    const fixture = setup()
+    fixture.state.sessions = [session("ses_one", "d:/code/app")]
+    const { api, dispose } = fixture.mount([app])
+
+    api.load()
+    await tick()
+
+    expect(fixture.state.spellings).toEqual([["D:/code/app", "d:/code/app"]])
+
+    fixture.state.listCalls.length = 0
+    api.load()
+    await tick()
+
+    expect(fixture.state.listCalls).toEqual(["d:/code/app"])
+    dispose()
   })
 })
