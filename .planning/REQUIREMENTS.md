@@ -12,9 +12,9 @@
 
 行源的唯一真相。
 
-- [ ] **REG-01**: 用户可以把一个本地文件夹登记为工作区；同一目录重复登记静默复用既有记录（含已移除的记录），不产生第二行
-- [ ] **REG-02**: 登记表持久化 `{ directory, title, order, createdAt, removedAt? }`，键为归一后的绝对路径；不新增数据库迁移、不新增协议端点
-- [ ] **REG-03**: 路径归一只做分隔符统一、去尾分隔符、Windows 盘符/大小写不敏感比较；符号链接别名会登记为两个工作区的限制被显式记录
+- [x] **REG-01**: 用户可以把一个本地文件夹登记为工作区；同一目录重复登记静默复用既有记录（含已移除的记录），不产生第二行
+- [x] **REG-02**: 登记表持久化 `{ directory, title, order, createdAt, removedAt? }`，键为归一后的绝对路径；不新增数据库迁移、不新增协议端点
+- [x] **REG-03**: 路径归一只做分隔符统一、去尾分隔符、Windows 盘符/大小写不敏感比较；符号链接别名会登记为两个工作区的限制被显式记录
 - [ ] **REG-04**: 登记后立即用 `session.list({ directory })` 的 `location.directory` 校准服务端拼写（可选增强，目录为空时退回本地归一）
 
 ### 侧栏行与会话 (ROW)
@@ -39,7 +39,7 @@
 ### 持久化 (PST)
 
 - [ ] **PST-01**: 登记列表、显示名、顺序、移除状态在重启后全部保持
-- [ ] **PST-02**: 状态存 `Persist.serverGlobal(serverScope, "workspace-registry.v1")`，不同 server 的登记互不干扰
+- [x] **PST-02**: 状态存 `Persist.serverGlobal(serverScope, "workspace-registry.v1")`，不同 server 的登记互不干扰
 
 ### 上游同步与打包 (SYNC)
 
@@ -75,9 +75,9 @@ Roadmap: `.planning/ROADMAP.md` — milestone v2.0「工作区登记侧栏」。
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| REG-01 | Phase 1 | Pending |
-| REG-02 | Phase 1 | Pending |
-| REG-03 | Phase 1 | Pending |
+| REG-01 | Phase 1 | Complete |
+| REG-02 | Phase 1 | Complete |
+| REG-03 | Phase 1 | Complete |
 | REG-04 | Phase 2 | Pending |
 | ROW-01 | Phase 2 | Pending |
 | ROW-02 | Phase 2 | Pending |
@@ -91,7 +91,7 @@ Roadmap: `.planning/ROADMAP.md` — milestone v2.0「工作区登记侧栏」。
 | UX-04 | Phase 2 | Pending |
 | UX-05 | Phase 2 | Pending |
 | PST-01 | Phase 2 | Pending |
-| PST-02 | Phase 1 | Pending |
+| PST-02 | Phase 1 | Complete |
 | SYNC-01 | Phase 3 | Pending |
 | SYNC-02 | Phase 3 | Pending |
 | SYNC-03 | Phase 3 | Pending |

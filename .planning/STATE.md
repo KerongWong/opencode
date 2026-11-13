@@ -2,15 +2,21 @@
 gsd_state_version: "1.0"
 milestone: v2.0
 milestone_name: 工作区登记侧栏
-status: planning
-last_updated: "2026-11-13T16:10:00.000Z"
-last_activity: 2026-11-13
+current_phase: 1
+current_phase_name: 登记表数据模型与纯函数
+current_plan: 1
+status: executing
+stopped_at: Completed 01-1-PLAN.md (registry model, 3 tasks)
+last_updated: "2026-11-14T00:18:00.000Z"
+last_activity: 2026-11-14
+last_activity_desc: Phase 1 plan 1 executed（registry model，3 tasks，36 tests）
+state_head: f10ae7ef36f2314312aad8460c53d6ce7a603461
 progress:
   total_phases: 3
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_plans: 1
+  completed_plans: 1
+  percent: 33
 ---
 
 # Project State
@@ -26,24 +32,25 @@ See: .planning/PROJECT.md (updated 2026-11-13)
 ## Current Position
 
 Phase: 1 of 3 (登记表数据模型与纯函数)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-11-13 — v2.0 roadmap created（3 phases，20/20 requirements mapped）
+Current Plan: 1
+Total Plans in Phase: 1
+Status: In Progress
+Last activity: 2026-11-14 — Phase 1 plan 1 complete（registry.ts + registry.test.ts，36 tests 全绿）
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [███░░░░░░░] 33%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0 (v2.0)
-- Average duration: -
-- Total execution time: 0 hours
+- Total plans completed: 1 (v2.0)
+- Average duration: 13min
+- Total execution time: 0.2 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 1 | - | - | - |
+| 1 | 1 | 13min | 13min |
 | 2 | - | - | - |
 | 3 | - | - | - |
 
@@ -52,6 +59,11 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: -
 
 *Updated after each plan completion*
+**Per-Plan Metrics:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 01 P1 | 13 | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -64,6 +76,9 @@ Recent decisions affecting current work:
 - [Roadmap]: `REG-04`（登记后用 `session.list` 的 `location.directory` 校准服务端拼写）落在 Phase 2，而不是 SPEC 建议的 Phase 1——Phase 1 的验收是纯单测，而该要求需要 HTTP 层（`row-sessions.ts`）。
 - [Roadmap]: 回退只由 Phase 3 拥有；Phase 1–2 从空目录新写模块，不修复、不复用 v1.0 的会话派生行代码。
 - [Roadmap]: Phase 1 的成功判据是「修复前失败的纯单测」，Phase 2 是「可见性与交互 + 文件级 typecheck」，Phase 3 是「diff 预算与隔离实测」——三者不互相替代。
+- [Phase 01]: 归一后的绝对路径即主键；Windows 盘符根保留 C:/（服务端 isWindowsStoragePath 只认 ^[A-Za-z]:/），比较仅在 win32 下不区分大小写
+- [Phase 01]: 重复登记复用既有记录（含已移除），清 removedAt 并保留 title/order/首次归一拼写；已可见时返回同一个 entries 引用以避免写入
+- [Phase 01]: 移除只写 removedAt，记录不删；新登记 order = 所有既有（含已移除）最大值 + 1；registryTarget 只返回 Persist.serverGlobal(scope, workspace-registry.v1) 目标，persisted() 留给 Phase 2
 
 ### Pending Todos
 
@@ -88,6 +103,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-11-13T16:10:00.000Z
-Stopped at: v2.0 roadmap created（ROADMAP.md / STATE.md / REQUIREMENTS.md traceability 已写）
+Last session: 2026-11-13T16:24:28.187Z
+Stopped at: Completed 01-1-PLAN.md (registry model, 3 tasks)
 Resume file: None

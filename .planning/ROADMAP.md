@@ -48,7 +48,8 @@ v2.0 的 phase 编号从 1 重新开始：本里程碑替换 v1.0 的产品模�
   3. 移除只写 `removedAt`，记录不删除；登记表的任何操作都不读写目录内容（无 `fs`、无 `location.get`、无 project 写入）；移除后再登记回到原显示名与原顺序。
   4. 顺序与默认标题可预测：新登记追加到 `order` 末尾而不插进已有序列；默认标题取目录最后一段（根目录取盘符或 `/`），用户改名后不再随目录改名。
   5. 持久化落在 `Persist.serverGlobal(serverScope, "workspace-registry.v1")`；`packages/server`、`packages/protocol`、`packages/core` 的 diff 为空（无迁移、无端点）。
-**Plans**: TBD
+**Plans**: 1/1 plans executed
+- [x] 01-PLAN.md
 
 ### Phase 2: 侧栏渲染与会话投影
 **Goal**: 侧栏显示什么完全由登记表决定：每一行是一个未移除的登记项，行内只出现 `directory` 与该行精确相等的会话；添加、重命名、移除、恢复、排序、空态、不可用态全部可用，且没有任何入口能凭空造出一行或漏掉一条会话。
@@ -81,6 +82,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. 登记表数据模型与纯函数 | 0/TBD | Not started | - |
+| 1. 登记表数据模型与纯函数 | 1/1 | In Progress | - |
 | 2. 侧栏渲染与会话投影 | 0/TBD | Not started | - |
 | 3. 上游触点收敛与打包隔离 | 0/TBD | Not started | - |
