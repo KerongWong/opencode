@@ -172,6 +172,7 @@ export function createWorkspaceSessions(input: {
         limit: SESSION_LIST_LIMIT,
         parentID: null,
         order: "desc",
+        archived: false,
       })
 
       setState("rows", key, { status: "ready", sessions: result.data })
