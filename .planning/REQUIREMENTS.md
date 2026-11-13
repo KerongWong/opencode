@@ -24,8 +24,8 @@
 - [x] **ROW-01**: 侧栏行只来自登记表：未登记的目录不出现，即使该目录存在历史会话
 - [x] **ROW-02**: 同一 git 仓库的两个目录登记后是两行，各自展开本目录的会话（同一分支也允许）
 - [x] **ROW-03**: 行内会话只包含 `directory` 与该行精确相等的会话，不含子目录
-- [ ] **ROW-04**: 侧栏不存在任何兜底分组（未分组 / 其它）；被移除登记的工作区，其会话在侧栏任何位置都不出现
-- [ ] **ROW-05**: Inbox 与命令面板的会话入口不受登记表影响（被移除工作区的会话仍可从那里访问）
+- [x] **ROW-04**: 侧栏不存在任何兜底分组（未分组 / 其它）；被移除登记的工作区，其会话在侧栏任何位置都不出现
+- [x] **ROW-05**: Inbox 与命令面板的会话入口不受登记表影响（被移除工作区的会话仍可从那里访问）
 - [x] **ROW-06**: `session.created` 的增量更新按 `location.directory` 归行；`archived` / `unarchived` / `deleted` 只带 `sessionID` 时，用 `sessionID → directory` 内存映射做行级刷新，不重扫全局索引
 
 ### 交互 (UX)
@@ -33,8 +33,8 @@
 - [x] **UX-01**: 重命名只写登记表的 `title`，默认取目录名；不写 `project.name` / `project.icon`，不碰任何会话数据
 - [x] **UX-02**: 移除工作区只写 `removedAt`：目录、git 状态、会话历史不动；重新登记恢复原显示名与原顺序
 - [x] **UX-03**: 拖拽排序写 `order`；新登记追加末尾，不抢占用户手排顺序
-- [ ] **UX-04**: 无登记项时显示空态与「添加本地文件夹」单一动作；不自动创建默认工作区
-- [ ] **UX-05**: 目录不存在或被改名时该行进入「不可用」态（可见、不可展开），不静默消失、不自动指向新路径
+- [x] **UX-04**: 无登记项时显示空态与「添加本地文件夹」单一动作；不自动创建默认工作区
+- [x] **UX-05**: 目录不存在或被改名时该行进入「不可用」态（可见、不可展开），不静默消失、不自动指向新路径
 
 ### 持久化 (PST)
 
@@ -82,14 +82,14 @@ Roadmap: `.planning/ROADMAP.md` — milestone v2.0「工作区登记侧栏」。
 | ROW-01 | Phase 2 | Complete |
 | ROW-02 | Phase 2 | Complete |
 | ROW-03 | Phase 2 | Complete |
-| ROW-04 | Phase 2 | Pending |
-| ROW-05 | Phase 2 | Pending |
+| ROW-04 | Phase 2 | Complete |
+| ROW-05 | Phase 2 | Complete |
 | ROW-06 | Phase 2 | Complete |
 | UX-01 | Phase 2 | Complete |
 | UX-02 | Phase 2 | Complete |
 | UX-03 | Phase 2 | Complete |
-| UX-04 | Phase 2 | Pending |
-| UX-05 | Phase 2 | Pending |
+| UX-04 | Phase 2 | Complete |
+| UX-05 | Phase 2 | Complete |
 | PST-01 | Phase 2 | Complete |
 | PST-02 | Phase 1 | Complete |
 | SYNC-01 | Phase 3 | Pending |
