@@ -50,18 +50,21 @@ export function hostPlatform(os: Platform["os"]): HostPlatform {
 
 /**
  * The client has no `fs`, so a directory cannot be resolved through symlinks or 8.3 short names: an
- * alias registers as a second workspace. Accepted residual, not silently normalized away. A Windows
- * drive root keeps its slash (`C:/`) because the server only stores paths matching `^[A-Za-z]:/`.
+ * alias registers as a second workspace. Accepted residual, not silently normalized away. The
+ * Windows-shaped rewrites (backslash folding, drive casing, drive-root repair) run only on `win32`,
+ * mirroring `isWindowsPath` in `packages/util/src/path.ts`: elsewhere `\` is an ordinary filename
+ * character, so `/a\b` and `/a/b` are distinct directories. A Windows drive root keeps its slash
+ * (`C:/`) because the server only stores paths matching `^[A-Za-z]:/`.
  */
 export function normalizeDirectory(input: string, platform: HostPlatform) {
-  const fused = fuseSeparators(input.replaceAll("\\", "/"))
+  const fused = fuseSeparators(platform === "win32" ? input.replaceAll("\\", "/") : input)
   const cased = platform === "win32" ? upperDrive(fused) : fused
 
   if (cased === "/") return "/"
 
-  if (/^[A-Za-z]:$/.test(cased)) return `${cased}/`
+  if (platform === "win32" && /^[A-Za-z]:$/.test(cased)) return `${cased}/`
 
-  if (/^[A-Za-z]:\/$/.test(cased)) return cased
+  if (platform === "win32" && /^[A-Za-z]:\/$/.test(cased)) return cased
 
   const trimmed = trimTrailingSeparators(cased)
 

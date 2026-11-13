@@ -93,12 +93,16 @@ describe("normalizeDirectory", () => {
     ["win32", "C:", "C:/"],
     ["win32", "C:\\", "C:/"],
     ["win32", "\\\\server\\share\\x\\", "//server/share/x"],
+    ["win32", "/a\\b", "/a/b"],
     ["linux", "/home/me/proj/", "/home/me/proj"],
     ["linux", "/a//b", "/a/b"],
+    ["linux", "/a\\b", "/a\\b"],
+    ["linux", "C:", "C:"],
     ["linux", "/", "/"],
     ["linux", "/Home/Me/Proj", "/Home/Me/Proj"],
     ["darwin", "/Users/Me/Proj/", "/Users/Me/Proj"],
     ["darwin", "/users/me/project", "/users/me/project"],
+    ["darwin", "/Users/me/a\\b", "/Users/me/a\\b"],
   ] as const)("%s normalizes %p to %p", (platform, input, expected) => {
     expect(normalizeDirectory(input, platform)).toBe(expected)
   })
@@ -111,6 +115,14 @@ describe("directoryKey", () => {
 
   test.each(["linux", "darwin"] as const)("keeps case on %s", (platform) => {
     expect(directoryKey("D:/Proj", platform)).not.toBe(directoryKey("D:/proj", platform))
+  })
+
+  test("keeps a backslash distinct from a separator on POSIX", () => {
+    expect(directoryKey("/a\\b", "linux")).not.toBe(directoryKey("/a/b", "linux"))
+  })
+
+  test("folds a backslash into a separator on Windows", () => {
+    expect(directoryKey("/a\\b", "win32")).toBe(directoryKey("/a/b", "win32"))
   })
 })
 
