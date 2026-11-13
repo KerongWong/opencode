@@ -141,18 +141,46 @@ describe("fetched page", () => {
     }),
   )
 
+  // The verifier's required call: an empty page with no fetch time applies no time bound, so a session this process
+  // created after the fetch still gets a row.
+  test("a session created after the fetch still gets a row on an empty page", () => {
+    const fetched = session("new", { time: { created: 2, updated: 2 } })
+
+    expect(mergeRootSessionIndex([], [fetched], { includeArchived: false, boundedKnown: true }).map((row) => row.id)).toEqual([
+      "new",
+    ])
+  })
+
+  // The bounded Projects view supplies the fetch time, so an empty page keeps out the known roots it already had while
+  // still admitting work done after the fetch.
+  test("an empty page is bounded by its fetch time", () => {
+    const after = session("after", { time: { created: 1, updated: 500 }, location: { directory: "/other" } })
+
+    const rows = mergeRootSessionIndex([], [c, after], {
+      includeArchived: false,
+      boundedKnown: true,
+      fetchedAt: 400,
+    })
+
+    expect(rows.map((row) => row.id)).toEqual(["after"])
+  })
+
   test("a fetched page the archive filter empties adds no project row", () => {
     const page = parseHomeSessionIndex(archivedPage)
     expect(page).toEqual([])
 
-    const rows = mergeRootSessionIndex(page, [c, d], { includeArchived: false, boundedKnown: true })
+    const rows = mergeRootSessionIndex(page, [c, d], {
+      includeArchived: false,
+      boundedKnown: true,
+      fetchedAt: 1_001_000,
+    })
 
     expect(rows).toEqual([])
     expect(projectKeys(rows)).not.toContain("srv\u0000/other")
   })
 
   test("the archived-page state shows the same project rows after a restart", () => {
-    const options = { includeArchived: false, boundedKnown: true }
+    const options = { includeArchived: false, boundedKnown: true, fetchedAt: 1_001_000 }
     const page = parseHomeSessionIndex(archivedPage)
 
     expect(projectKeys(mergeRootSessionIndex(page, [c], options))).toEqual(
@@ -199,5 +227,27 @@ describe("fetched page", () => {
     expect(mergeRootSessionIndex(undefined, [g], { includeArchived: true, boundedKnown: false }).map((row) => row.id)).toEqual([
       "g-archived",
     ])
+  })
+
+  // `entries()` supplies the fetch time on every call, so "no page fetched" must win over a stale one.
+  test("with no page fetched a stale fetch time bounds nothing", () => {
+    const rows = mergeRootSessionIndex(undefined, [c], {
+      includeArchived: false,
+      boundedKnown: true,
+      fetchedAt: 400,
+    })
+
+    expect(rows.map((row) => row.id)).toEqual(["c"])
+  })
+
+  // A non-empty page keeps the floor of its surviving roots, so the fetch time can neither tighten nor widen it.
+  test("a non-empty page keeps its survivor floor over the fetch time", () => {
+    const rows = mergeRootSessionIndex([a, b], [d], {
+      includeArchived: false,
+      boundedKnown: true,
+      fetchedAt: 5000,
+    })
+
+    expect(rows.map((row) => row.id)).toEqual(["a", "b", "d"])
   })
 })
