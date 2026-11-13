@@ -96,6 +96,7 @@ describe("bounded known window", () => {
 
   test("an indexed root is refreshed by a known copy older than the floor", () => {
     const indexed = session("a", { title: "indexed", time: { created: 1, updated: 300, idle: 5 } })
+
     const known = session("a", {
       title: "known",
       time: { created: 1, updated: 100, idle: 0 },
