@@ -63,6 +63,7 @@ describe("projectGroupFor", () => {
       sandboxes: ["C:/work/app/.worktrees/feature"],
       worktrees: [{ directory: "C:/work/app" }],
     }
+
     // After: `withWorktreeInventory` recomputes `sandboxes` from the listed inventory minus the canonical root.
     const inventoried = {
       worktree: "C:/work/app",
@@ -90,6 +91,7 @@ describe("projectGroupFor", () => {
       sandboxes: ["C:/work/app/.worktrees/feature"],
       worktrees: [{ directory: "C:/work/app" }],
     }
+
     const inventoried = {
       worktree: "C:/work/app",
       sandboxes: ["C:/work/app/.worktrees/feature"],
