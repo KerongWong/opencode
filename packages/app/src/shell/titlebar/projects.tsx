@@ -66,6 +66,33 @@ export function SidebarProjects() {
 
   const removedKeys = createMemo(() => new Set(sidebar.removed()))
 
+  // A project's metadata carries no worktrees, so the session index lists the checkout rather than the worktrees
+  // inside it. Ask once per project per mount and skip anything already cached: `list` reads saved inventory with
+  // `staleTime: 0`, so without the cache check every session update would fetch again. Read only, never `refresh`:
+  // a failed read keeps the `sandboxes` fallback until the next mount, `worktree.updated` or a reconnect.
+  const requestedWorktrees = new Set<string>()
+
+  createEffect(() => {
+    inbox.entries().forEach((entry) => {
+      const project = entry.ctx.projects.forSession(entry.session)
+
+      // The pseudo project has no inventory, so asking for it can only fail.
+      if (!project?.id || project.id === "global") return
+
+      // Clones of one repository share a project ID, so the local key also carries the server.
+      const key = `${entry.server}\u0000${project.id}`
+
+      if (requestedWorktrees.has(key)) return
+
+      // Claim before asking, so a project repeated in this pass does not ask twice.
+      requestedWorktrees.add(key)
+
+      if (entry.ctx.sync.worktrees.cached(project.id) !== undefined) return
+
+      void entry.ctx.sync.worktrees.list(project.id)
+    })
+  })
+
   // Entries arrive newest first, so the first entry of a group dates it. Ungrouped sessions go last rather than
   // disappearing: a session without a project is still a session a person can open, and so is a session whose project
   // was removed from this sidebar.
