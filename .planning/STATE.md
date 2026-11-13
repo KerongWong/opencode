@@ -1,21 +1,16 @@
 ---
 gsd_state_version: "1.0"
-milestone: v1.0
-milestone_name: Projects 侧栏正确性
-current_phase: 3
-current_phase_name: 持久化 key 与接缝文档
+milestone: v2.0
+milestone_name: 工作区登记侧栏
 status: planning
-stopped_at: Phase 02 complete, ready to plan Phase 3
-last_updated: "2026-11-13T12:31:53.210Z"
+last_updated: "2026-11-13T15:49:40.398Z"
 last_activity: 2026-11-13
-last_activity_desc: Phase 02 complete, transitioned to Phase 3
-state_head: 865c92915a8d4cda33229aae005bc93c6acf8b6d
 progress:
-  total_phases: 3
-  completed_phases: 2
-  total_plans: 6
-  completed_plans: 6
-  percent: 67
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -29,12 +24,10 @@ See: .planning/PROJECT.md (updated 2026-11-13)
 
 ## Current Position
 
-Phase: 3 — 持久化 key 与接缝文档
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-11-13 — Phase 02 complete, transitioned to Phase 3
-
-Progress: [███████░░░] 67%
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-11-13 — Milestone v2.0 started
 
 ## Performance Metrics
 
