@@ -3,6 +3,7 @@ import { Schema } from "effect"
 import { ServerScope } from "@/runtime/server/scope"
 import {
   defaultTitle,
+  detectHostPlatform,
   directoryKey,
   hostPlatform,
   initialRegistry,
@@ -134,6 +135,19 @@ describe("hostPlatform", () => {
     [undefined, "linux"],
   ] as const)("maps %p to %s", (os, expected) => {
     expect(hostPlatform(os)).toBe(expected)
+  })
+
+  // The web build has no `Platform["os"]`, so a constant `linux` fallback made every Windows path
+  // fail the absolute-path check and turned register/remove into silent no-ops inside a Windows browser.
+  test.each([
+    ["Win32", "win32"],
+    ["Windows", "win32"],
+    ["MacIntel", "darwin"],
+    ["Linux x86_64", "linux"],
+    ["", "linux"],
+    [undefined, "linux"],
+  ] as const)("detects %p as %s", (hint, expected) => {
+    expect(detectHostPlatform(hint)).toBe(expected)
   })
 })
 

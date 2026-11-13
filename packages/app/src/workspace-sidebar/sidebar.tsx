@@ -25,7 +25,7 @@ import { ProjectSessionRow } from "@/shell/titlebar/project-session-row"
 import { createSidebarActivityListener } from "@/shell/titlebar/sidebar-organized"
 import { useDirectoryPicker } from "@/workspaces/selection/picker"
 import { WorkspaceRemoveDialog, WorkspaceRenameDialog } from "./dialogs"
-import { directoryKey, hostPlatform, visible, type WorkspaceEntry } from "./registry"
+import { detectHostPlatform, directoryKey, hostPlatform, visible, type WorkspaceEntry } from "./registry"
 import { createWorkspaceSessions, sessionsOf } from "./sessions"
 import { createWorkspaceRegistry } from "./store"
 
@@ -72,7 +72,7 @@ function WorkspaceSidebarBody(props: { conn: ServerConnection.Any }) {
 
   const actions = createProjectSessionActions()
 
-  const host = hostPlatform(platform.platform === "desktop" ? platform.os : undefined)
+  const host = platform.platform === "desktop" ? hostPlatform(platform.os) : detectHostPlatform(navigator.platform)
 
   const serverKey = ServerConnection.key(props.conn)
 

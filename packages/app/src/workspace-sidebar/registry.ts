@@ -49,6 +49,20 @@ export function hostPlatform(os: Platform["os"]): HostPlatform {
 }
 
 /**
+ * The web build carries no `Platform["os"]`, so the host platform has to come from the browser.
+ * Falling back to `linux` there made every Windows path fail the absolute-path check, which made
+ * register and remove silent no-ops inside a Windows browser — the mode simply stopped working
+ * while its unit tests (which pass an explicit platform) stayed green.
+ */
+export function detectHostPlatform(uaPlatform: string | undefined): HostPlatform {
+  if (uaPlatform !== undefined && /win/i.test(uaPlatform)) return "win32"
+
+  if (uaPlatform !== undefined && /mac|darwin/i.test(uaPlatform)) return "darwin"
+
+  return "linux"
+}
+
+/**
  * The client has no `fs`, so a directory cannot be resolved through symlinks or 8.3 short names: an
  * alias registers as a second workspace. Accepted residual, not silently normalized away. The
  * Windows-shaped rewrites (backslash folding, drive casing, drive-root repair) run only on `win32`,
