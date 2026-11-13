@@ -8,20 +8,35 @@ type ProjectRoots = {
   readonly worktrees?: readonly ProjectDirectory[]
 }
 
+// Sessions of one project share its metadata object, and that metadata is replaced rather than edited, so the root set
+// is built once per object instead of once per session. Keyed by the object itself: an inventory update arrives as a
+// new object, which is what lets a deeper checkout start its own row (D-08).
+const rootsByProject = new WeakMap<ProjectRoots, readonly string[]>()
+
+function projectRoots(project: ProjectRoots) {
+  const cached = rootsByProject.get(project)
+
+  if (cached) return cached
+
+  // `sandboxes` never carries the canonical directory, and project metadata may carry nothing else, so the canonical
+  // worktree is listed explicitly: without it a checkout's subdirectories become rows of their own.
+  const roots = [
+    ...(project.worktrees ?? []).map((item) => item.directory),
+    ...(project.sandboxes ?? []),
+    ...(project.worktree ? [project.worktree] : []),
+  ].filter((root, index, items) => items.findIndex((item) => sameDirectory(item, root)) === index)
+
+  rootsByProject.set(project, roots)
+
+  return roots
+}
+
 /**
  * The known project directory that owns a session directory, preferring the closest one. Sessions can run in a
  * subdirectory of a checkout, so a group follows the checkout instead of every subdirectory becoming its own row.
  */
 export function sessionProjectDirectory(project: ProjectRoots | undefined, directory: string) {
-  // `sandboxes` never carries the canonical directory, and project metadata may carry nothing else, so the canonical
-  // worktree is listed explicitly: without it a checkout's subdirectories become rows of their own.
-  const roots = [
-    ...(project?.worktrees ?? []).map((item) => item.directory),
-    ...(project?.sandboxes ?? []),
-    ...(project?.worktree ? [project.worktree] : []),
-  ].filter((root, index, items) => items.findIndex((item) => sameDirectory(item, root)) === index)
-
-  const owner = roots
+  const owner = (project ? projectRoots(project) : [])
     .filter((root) => containsDirectory(root, directory))
     .toSorted((a, b) => comparablePath(b).length - comparablePath(a).length)[0]
 
