@@ -1,28 +1,28 @@
 {
   "contract": "1.0.0",
   "flavor": "core",
-  "milestone": "v2.0",
+  "milestone": "v2.0 — 工作区登记侧栏",
   "phases": [
     {
       "number": "1",
-      "name": "行源收敛",
+      "name": "登记表数据模型与纯函数",
       "status": "complete"
     },
     {
       "number": "2",
-      "name": "每个本地 checkout 成行",
-      "status": "complete"
+      "name": "侧栏渲染与会话投影",
+      "status": "pending"
     },
     {
       "number": "3",
-      "name": "持久化 key 与接缝文档",
+      "name": "上游触点收敛与打包隔离",
       "status": "pending"
     }
   ],
   "next": {
-    "command": "/gsd-discuss-phase",
-    "label": "Discuss the first phase",
-    "reason": "Project initialized — plan your first phase"
+    "command": "/gsd-progress --next",
+    "label": "Advance to the next step (verify)",
+    "reason": "Phase 2 of 3 · 33% · ready to verify"
   },
-  "updated_at": "2026-11-13T15:49:40.404Z"
+  "updated_at": "2026-11-13T16:46:13.421Z"
 }

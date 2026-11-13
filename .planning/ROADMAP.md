@@ -32,7 +32,7 @@ v2.0 把左侧栏的行源从「会话派生的项目 / checkout 分组」换成
 
 v2.0 的 phase 编号从 1 重新开始：本里程碑替换 v1.0 的产品模型，v1.0 的 phase 已归档在 `.planning/milestones/v1.0-phases/`，不与本里程碑连续编号。
 
-- [ ] **Phase 1: 登记表数据模型与纯函数** - `registry.ts`：路径归一、认领/复用、移除/恢复、order、默认标题，全部由修复前失败的纯单测钉住
+- [x] **Phase 1: 登记表数据模型与纯函数** - `registry.ts`：路径归一、认领/复用、移除/恢复、order、默认标题，全部由修复前失败的纯单测钉住 (completed 2026-11-14)
 - [ ] **Phase 2: 侧栏渲染与会话投影** - 行只来自登记表，行内会话走 `session.list({ directory })`，交付添加/重命名/移除/恢复/排序/空态/不可用态
 - [ ] **Phase 3: 上游触点收敛与打包隔离** - 回退 v1.0 的会话派生行改动、5 文件最小接缝、`OPENCODE_CHANNEL=fork`、merge 演练实测并回填预算
 
@@ -48,7 +48,7 @@ v2.0 的 phase 编号从 1 重新开始：本里程碑替换 v1.0 的产品模�
   3. 移除只写 `removedAt`，记录不删除；登记表的任何操作都不读写目录内容（无 `fs`、无 `location.get`、无 project 写入）；移除后再登记回到原显示名与原顺序。
   4. 顺序与默认标题可预测：新登记追加到 `order` 末尾而不插进已有序列；默认标题取目录最后一段（根目录取盘符或 `/`），用户改名后不再随目录改名。
   5. 持久化落在 `Persist.serverGlobal(serverScope, "workspace-registry.v1")`；`packages/server`、`packages/protocol`、`packages/core` 的 diff 为空（无迁移、无端点）。
-**Plans**: 1/1 plans executed
+**Plans**: 1/1 plans complete
 - [x] 01-PLAN.md
 
 ### Phase 2: 侧栏渲染与会话投影
@@ -82,6 +82,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. 登记表数据模型与纯函数 | 1/1 | In Progress | - |
+| 1. 登记表数据模型与纯函数 | 1/1 | Complete    | 2026-11-14 |
 | 2. 侧栏渲染与会话投影 | 0/TBD | Not started | - |
 | 3. 上游触点收敛与打包隔离 | 0/TBD | Not started | - |

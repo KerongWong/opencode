@@ -95,6 +95,10 @@ Roadmap: `.planning/ROADMAP.md` — milestone v2.0「工作区登记侧栏」。
 | SYNC-01 | Phase 3 | Pending |
 | SYNC-02 | Phase 3 | Pending |
 | SYNC-03 | Phase 3 | Pending |
+| UIX-01 | — | Deferred (v2) |
+| UIX-02 | — | Deferred (v2) |
+| UIX-03 | — | Deferred (v2) |
+| STY-01 | — | Deferred (v2) |
 
 **Coverage:**
 - v1 requirements: 20 total

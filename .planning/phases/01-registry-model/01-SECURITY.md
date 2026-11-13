@@ -11,7 +11,8 @@ created: "2026-11-14"
 
 > Per-phase security contract: threat register, accepted risks, and audit trail.
 
-**注册表来源说明：** 本阶段的 `01-PLAN.md` 没有 `<threat_model>` 块（planner 未写）。按 `secure-phase` 的规则，这种情况**不允许**直接跳过到干净状态；本文件因此以 **retroactive-STRIDE** 方式由 orchestrator 在 **ASVS L1（grep/读码深度）** 手工建立，依据是 `registry.ts` 的实际实现与它的 48 条单测。未 spawn `gsd-security-auditor`。`threats_open: 0` 的含义是「按 L1 深度没有发现需要阻断的开放威胁」，不是「经独立审计员确认」。
+**注册表来源说明：** 本阶段的 `01-PLAN.md` **有** `<threat_model>` 块（`T-01-01` 持久化文档篡改、`T-01-02` 跨 server 路径写入、`T-01-03` entries 无界增长）。本文件在该块之上，由 orchestrator 以 **retroactive-STRIDE** 在 **ASVS L1（读码/grep 深度）** 做了一次补全式审计，补入了 PLAN 未列的攻击面（路径→键伪造、跨平台键碰撞、供应链），并逐条给出实现级证据。未 spawn `gsd-security-auditor`。`threats_open: 0` 的含义是「按 L1 深度没有发现需要阻断的开放威胁」，不是「经独立审计员确认」。
+PLAN 与本文件编号不对应（PLAN 的 T-01-02/03 是本文件的 T-01-04/T-01-05），下表以本文件编号为准，并在备注列标明 PLAN 对应项。
 
 ---
 
