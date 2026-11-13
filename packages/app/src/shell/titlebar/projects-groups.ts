@@ -1,16 +1,25 @@
-import { comparablePath, containsDirectory } from "@opencode/util/path"
+import { comparablePath, containsDirectory, sameDirectory } from "@opencode/util/path"
 
 type ProjectDirectory = { readonly directory: string }
+
+type ProjectRoots = {
+  readonly worktree?: string
+  readonly sandboxes?: readonly string[]
+  readonly worktrees?: readonly ProjectDirectory[]
+}
 
 /**
  * The known project directory that owns a session directory, preferring the closest one. Sessions can run in a
  * subdirectory of a checkout, so a group follows the checkout instead of every subdirectory becoming its own row.
  */
-export function sessionProjectDirectory(
-  project: { readonly worktrees?: readonly ProjectDirectory[] } | undefined,
-  directory: string,
-) {
-  const roots = project?.worktrees?.map((item) => item.directory) ?? []
+export function sessionProjectDirectory(project: ProjectRoots | undefined, directory: string) {
+  // `sandboxes` never carries the canonical directory, and project metadata may carry nothing else, so the canonical
+  // worktree is listed explicitly: without it a checkout's subdirectories become rows of their own.
+  const roots = [
+    ...(project?.worktrees ?? []).map((item) => item.directory),
+    ...(project?.sandboxes ?? []),
+    ...(project?.worktree ? [project.worktree] : []),
+  ].filter((root, index, items) => items.findIndex((item) => sameDirectory(item, root)) === index)
 
   const owner = roots
     .filter((root) => containsDirectory(root, directory))
@@ -24,11 +33,7 @@ export function sessionProjectDirectory(
  * shared `ungrouped` key when the session has no project. Removed projects are matched by this key, so it depends only
  * on the server and the checkout, never on a label or an order the person can change from the sidebar.
  */
-export function projectGroupFor(
-  server: string,
-  project: { readonly worktrees?: readonly ProjectDirectory[] } | undefined,
-  directory: string,
-) {
+export function projectGroupFor(server: string, project: ProjectRoots | undefined, directory: string) {
   if (!project) return { key: "ungrouped", directory }
 
   const checkout = sessionProjectDirectory(project, directory)

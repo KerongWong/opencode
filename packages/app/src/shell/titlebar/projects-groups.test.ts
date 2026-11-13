@@ -17,6 +17,16 @@ describe("sessionProjectDirectory", () => {
     expect(sessionProjectDirectory(project, "D:/branch/app")).toBe("D:/branch/app")
     expect(sessionProjectDirectory(undefined, "D:/branch/app")).toBe("D:/branch/app")
   })
+
+  test("falls back to the project's sandboxes before the inventory arrives", () => {
+    // Metadata carries only the canonical worktree at this point; `sandboxes` is the saved inventory of the others.
+    const project = { worktree: "C:/work/app", sandboxes: ["C:/work/app/.worktrees/feature"] }
+
+    expect(sessionProjectDirectory(project, "C:/work/app/.worktrees/feature/src")).toBe(
+      "C:/work/app/.worktrees/feature",
+    )
+    expect(sessionProjectDirectory(project, "C:/work/app/packages/ui")).toBe("C:/work/app")
+  })
 })
 
 describe("projectGroupFor", () => {
