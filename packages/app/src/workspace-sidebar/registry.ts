@@ -1,6 +1,8 @@
 import { Schema } from "effect"
 import type { Platform } from "@/runtime/platform/platform"
 import { Persistence } from "@/runtime/persistence/schema"
+import { Persist } from "@/runtime/persistence/storage"
+import type { ServerScope } from "@/runtime/server/scope"
 
 export type HostPlatform = "win32" | "darwin" | "linux"
 
@@ -15,6 +17,23 @@ export const WorkspaceEntrySchema = Persistence.struct({
 })
 
 export type WorkspaceEntry = typeof WorkspaceEntrySchema.Type
+
+export const WorkspaceRegistrySchema = Persistence.struct({
+  entries: Persistence.array(WorkspaceEntrySchema),
+  scrollTop: Schema.Number,
+})
+
+export type WorkspaceRegistry = typeof WorkspaceRegistrySchema.Type
+
+export const initialRegistry: WorkspaceRegistry = { entries: [], scrollTop: 0 }
+
+/**
+ * The persisted target only. Phase 2 calls `persisted(registryTarget(scope), ...)` from its own
+ * component, so no Solid owner enters this module.
+ */
+export function registryTarget(scope: ServerScope): ReturnType<typeof Persist.serverGlobal> {
+  return Persist.serverGlobal(scope, REGISTRY_KEY)
+}
 
 /**
  * The only mapping from the host OS vocabulary to the normalization platform. `DesktopOS` is not
@@ -60,6 +79,14 @@ export function directoryKey(directory: string, platform: HostPlatform) {
   return platform === "win32" ? normalized.toLowerCase() : normalized
 }
 
+/** The last segment of a normalized directory, except for a root, which keeps its own spelling. */
+export function defaultTitle(directory: string) {
+  const trimmed = trimTrailingSeparators(directory)
+  const title = trimmed.slice(trimmed.lastIndexOf("/") + 1)
+
+  return title === "" ? directory : title
+}
+
 export function register(entries: WorkspaceEntry[], input: { directory: string; platform: HostPlatform }) {
   const key = directoryKey(input.directory, input.platform)
   const existing = entries.find((entry) => directoryKey(entry.directory, input.platform) === key)
@@ -76,12 +103,28 @@ export function register(entries: WorkspaceEntry[], input: { directory: string; 
 
   const entry: WorkspaceEntry = {
     directory,
-    title: directory.slice(directory.lastIndexOf("/") + 1),
-    order: entries.length,
+    title: defaultTitle(directory),
+    order: entries.reduce((next, item) => Math.max(next, item.order + 1), 0),
     createdAt: Date.now(),
   }
 
   return { entries: [...entries, entry], entry }
+}
+
+/** Masks the record instead of deleting it, so re-registering restores its display name and order. */
+export function remove(entries: WorkspaceEntry[], input: { directory: string; platform: HostPlatform }) {
+  const key = directoryKey(input.directory, input.platform)
+  const existing = entries.find((entry) => directoryKey(entry.directory, input.platform) === key)
+
+  if (!existing || existing.removedAt !== undefined) return entries
+
+  const removedAt = Date.now()
+
+  return entries.map((entry) => (entry === existing ? { ...entry, removedAt } : entry))
+}
+
+export function visible(entries: WorkspaceEntry[]) {
+  return entries.filter((entry) => entry.removedAt === undefined).sort((left, right) => left.order - right.order)
 }
 
 /** Keeps a UNC prefix's leading `//` while collapsing separators inside the rest of the path. */

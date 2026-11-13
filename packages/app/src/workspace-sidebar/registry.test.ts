@@ -1,5 +1,20 @@
 import { afterEach, describe, expect, setSystemTime, test } from "bun:test"
-import { directoryKey, hostPlatform, normalizeDirectory, register, type WorkspaceEntry } from "./registry"
+import { Schema } from "effect"
+import { ServerScope } from "@/runtime/server/scope"
+import {
+  defaultTitle,
+  directoryKey,
+  hostPlatform,
+  initialRegistry,
+  normalizeDirectory,
+  register,
+  registryTarget,
+  remove,
+  visible,
+  WorkspaceRegistrySchema,
+  type WorkspaceEntry,
+  type WorkspaceRegistry,
+} from "./registry"
 
 const app: WorkspaceEntry = { directory: "D:/code/app", title: "My app", order: 3, createdAt: 500 }
 
@@ -38,6 +53,20 @@ describe("register", () => {
 
     expect(result.entries).toEqual([{ directory: "D:/code/app", title: "app", order: 0, createdAt: 1_000 }])
     expect(result.entry).toBe(result.entries[0])
+  })
+
+  test("appends after the highest order, including removed records", () => {
+    setSystemTime(3_000)
+
+    const entries: WorkspaceEntry[] = [
+      { directory: "/a", title: "a", order: 0, createdAt: 1 },
+      { directory: "/b", title: "b", order: 5, createdAt: 2, removedAt: 900 },
+    ]
+
+    const result = register(entries, { directory: "/c", platform: "linux" })
+
+    expect(result.entry.order).toBe(6)
+    expect(result.entries.map((entry) => entry.order)).toEqual([0, 5, 6])
   })
 })
 
@@ -79,5 +108,97 @@ describe("hostPlatform", () => {
     [undefined, "linux"],
   ] as const)("maps %p to %s", (os, expected) => {
     expect(hostPlatform(os)).toBe(expected)
+  })
+})
+
+describe("defaultTitle", () => {
+  test.each([
+    ["/", "/"],
+    ["C:/", "C:"],
+    ["D:/code/app", "app"],
+    ["//server/share", "share"],
+  ] as const)("derives %p from %p", (directory, title) => {
+    expect(defaultTitle(directory)).toBe(title)
+  })
+})
+
+describe("remove", () => {
+  afterEach(() => setSystemTime())
+
+  test("masks a record without deleting it or rewriting its display name", () => {
+    setSystemTime(4_000)
+
+    const next = remove([app], { directory: "d:/CODE/app", platform: "win32" })
+
+    expect(next).toHaveLength(1)
+    expect(next[0]!.removedAt).toBe(4_000)
+    expect(next[0]!.title).toBe("My app")
+  })
+
+  test("keeps the first removal timestamp and returns the same list", () => {
+    setSystemTime(4_000)
+    const once = remove([app], { directory: "D:/code/app", platform: "win32" })
+    setSystemTime(5_000)
+
+    const twice = remove(once, { directory: "D:/code/app", platform: "win32" })
+
+    expect(twice).toBe(once)
+    expect(twice[0]!.removedAt).toBe(4_000)
+  })
+
+  test("ignores an unregistered directory", () => {
+    const entries: WorkspaceEntry[] = [app]
+
+    expect(remove(entries, { directory: "/nope", platform: "linux" })).toBe(entries)
+  })
+
+  test("re-registering after removal restores the display name and order", () => {
+    const renamed: WorkspaceEntry = { directory: "/project", title: "Renamed", order: 2, createdAt: 10 }
+    const removed = remove([renamed], { directory: "/project", platform: "linux" })
+    setSystemTime(6_000)
+
+    const result = register(removed, { directory: "/project/", platform: "linux" })
+
+    expect(result.entry.title).toBe("Renamed")
+    expect(result.entry.order).toBe(2)
+    expect(result.entry.removedAt).toBeUndefined()
+  })
+})
+
+describe("visible", () => {
+  test("drops removed entries and sorts by order", () => {
+    const entries: WorkspaceEntry[] = [
+      { directory: "/b", title: "b", order: 5, createdAt: 1 },
+      { directory: "/a", title: "a", order: 0, createdAt: 1 },
+      { directory: "/c", title: "c", order: 9, createdAt: 1, removedAt: 2 },
+    ]
+
+    expect(visible(entries).map((entry) => entry.directory)).toEqual(["/a", "/b"])
+  })
+})
+
+describe("workspace registry document", () => {
+  const registry: WorkspaceRegistry = { entries: [app, removedApp], scrollTop: 12 }
+
+  test("keeps entries and scroll position through a round trip", () => {
+    const encoded = Schema.encodeSync(WorkspaceRegistrySchema)(registry)
+
+    expect(encoded).toEqual({
+      entries: [
+        { directory: "D:/code/app", title: "My app", order: 3, createdAt: 500 },
+        { directory: "D:/code/app", title: "My app", order: 3, createdAt: 500, removedAt: 900 },
+      ],
+      scrollTop: 12,
+    })
+    expect(encoded.entries?.[0]).not.toHaveProperty("removedAt")
+    expect(Schema.decodeUnknownSync(WorkspaceRegistrySchema)(encoded)).toEqual(registry)
+  })
+
+  test("starts empty", () => {
+    expect(initialRegistry).toEqual({ entries: [], scrollTop: 0 })
+  })
+
+  test("uses the registry key as the persisted key", () => {
+    expect(registryTarget(ServerScope.local).key).toBe("workspace-registry.v1")
   })
 })
