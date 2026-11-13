@@ -3,8 +3,11 @@ import type { SessionInfo } from "@opencode/client/promise"
 import { createEffect, createMemo, on, Show } from "solid-js"
 import { createStore } from "solid-js/store"
 import { Button } from "@opencode/ui/button"
+import { useDialog } from "@opencode/ui/context/dialog"
 import { Icon } from "@opencode/ui/icon"
+import { IconButton } from "@opencode/ui/icon-button"
 import { Loader } from "@opencode/ui/loader"
+import { Menu } from "@opencode/ui/menu"
 import { useLanguage } from "@/runtime/i18n/language"
 import { usePlatform } from "@/runtime/platform/platform"
 import { ServerConnection, useServers } from "@/runtime/server/registry"
@@ -16,6 +19,7 @@ import { useTabs } from "@/shell/tabs/tabs"
 import { ProjectSessionRow } from "@/shell/titlebar/project-session-row"
 import { createSidebarActivityListener } from "@/shell/titlebar/sidebar-organized"
 import { useDirectoryPicker } from "@/workspaces/selection/picker"
+import { WorkspaceRemoveDialog, WorkspaceRenameDialog } from "./dialogs"
 import { directoryKey, hostPlatform, visible, type WorkspaceEntry } from "./registry"
 import { createWorkspaceSessions, sessionsOf } from "./sessions"
 import { createWorkspaceRegistry } from "./store"
@@ -59,6 +63,8 @@ function WorkspaceSidebarBody(props: { conn: ServerConnection.Any }) {
 
   const picker = useDirectoryPicker()
 
+  const dialog = useDialog()
+
   const actions = createProjectSessionActions()
 
   const host = hostPlatform(platform.platform === "desktop" ? platform.os : undefined)
@@ -86,7 +92,24 @@ function WorkspaceSidebarBody(props: { conn: ServerConnection.Any }) {
 
   const expanded = (key: string) => ui.expanded[key] === true
 
-  const toggle = (key: string) => setUi("expanded", key, (value) => !value)
+  const unavailable = (key: string) => sessions.availability()[key] === "unavailable"
+
+  const toggle = (key: string) => {
+    const next = !expanded(key)
+
+    setUi("expanded", key, next)
+
+    // The first frame never waits: an expanded row renders what it already has, then fills in.
+    if (next && !sessions.rows()[key] && !unavailable(key)) sessions.refreshRow(key)
+  }
+
+  const rename = (entry: WorkspaceEntry) =>
+    dialog.show(() => (
+      <WorkspaceRenameDialog title={entry.title} onRename={(title) => registry.rename(entry.directory, title)} />
+    ))
+
+  const remove = (entry: WorkspaceEntry) =>
+    dialog.show(() => <WorkspaceRemoveDialog title={entry.title} onRemove={() => registry.remove(entry.directory)} />)
 
   const add = () =>
     picker({
@@ -147,7 +170,10 @@ function WorkspaceSidebarBody(props: { conn: ServerConnection.Any }) {
                     server={serverKey}
                     entry={entry()}
                     expanded={expanded(key())}
+                    unavailable={unavailable(key())}
                     onToggle={() => toggle(key())}
+                    onRename={() => rename(entry())}
+                    onRemove={() => remove(entry())}
                     row={sessionsOf(sessions.rows(), key())}
                     isOpenTab={isOpenTab}
                     isActive={isActive}
@@ -176,7 +202,11 @@ function WorkspaceRow(props: {
   server: ServerConnection.Key
   entry: WorkspaceEntry
   expanded: boolean
+  /** The directory probe failed: the row stays, marked, and cannot expand. */
+  unavailable: boolean
   onToggle: () => void
+  onRename: () => void
+  onRemove: () => void
   /** This row's session list, read from the sidebar store so an unloaded row never suspends. */
   row: { status: "loading" | "ready" | "failed"; sessions: SessionInfo[] }
   isOpenTab: (sessionID: string) => boolean
@@ -185,19 +215,45 @@ function WorkspaceRow(props: {
 }) {
   const language = useLanguage()
 
+  const [menu, setMenu] = createStore({ open: false })
+
+  const openMenu = () => setMenu("open", true)
+
   return (
     <div class="relative shrink-0">
-      <div class="group/workspace relative flex h-7 min-w-0 shrink-0 items-center rounded-[6px] pe-1 hover:bg-v2-overlay-simple-overlay-hover has-[:focus-visible]:bg-v2-overlay-simple-overlay-hover">
+      <div
+        class="group/workspace relative flex h-7 min-w-0 shrink-0 items-center rounded-[6px] pe-1 hover:bg-v2-overlay-simple-overlay-hover has-[:focus-visible]:bg-v2-overlay-simple-overlay-hover"
+        onContextMenu={(event) => {
+          event.preventDefault()
+          openMenu()
+        }}
+        onKeyDown={(event) => {
+          if (event.key !== "ContextMenu" && (event.key !== "F10" || !event.shiftKey)) return
+          event.preventDefault()
+          openMenu()
+        }}
+      >
         <button
           type="button"
           class="flex h-full min-w-0 flex-1 cursor-default items-center gap-2 rounded-[6px] bg-transparent px-2 text-start text-[13px] leading-[var(--line-height-compact)] text-v2-text-text-muted [font-weight:440] transition-colors duration-[120ms] ease-in-out group-hover/workspace:text-v2-text-text-base focus-visible:text-v2-text-text-base focus-visible:outline-none"
           aria-expanded={props.expanded}
-          onClick={props.onToggle}
+          aria-disabled={props.unavailable}
+          onClick={() => {
+            if (!props.unavailable) props.onToggle()
+          }}
         >
           <Icon name="folder" size="small" class="shrink-0 text-v2-icon-icon-muted" />
           <span class="min-w-0 flex-1 truncate" dir="auto">
             {props.entry.title}
           </span>
+          <Show when={props.unavailable}>
+            <span
+              class="shrink-0 truncate text-[11px] leading-[var(--line-height-compact)] text-v2-text-text-faint [font-weight:400]"
+              title={language.t("sidebar.workspace.unavailable.description")}
+            >
+              {language.t("sidebar.workspace.unavailable")}
+            </span>
+          </Show>
           <Icon
             name="fill-triangle-down"
             size="small"
@@ -205,9 +261,37 @@ function WorkspaceRow(props: {
             classList={{ "-rotate-90 rtl:rotate-90": !props.expanded }}
           />
         </button>
+        <span
+          data-workspace-action
+          data-menu={menu.open}
+          class="hover-reveal flex shrink-0 items-center gap-1 group-hover/workspace:opacity-100 focus-within:opacity-100 data-[menu=true]:opacity-100"
+        >
+          <Menu
+            gutter={6}
+            modal={false}
+            placement="bottom-end"
+            open={menu.open}
+            onOpenChange={(open) => setMenu("open", open)}
+          >
+            <Menu.Trigger
+              as={IconButton}
+              variant="ghost-muted"
+              size="small"
+              icon={<Icon name="outline-dots" />}
+              aria-label={language.t("sidebar.workspace.options")}
+            />
+            <Menu.Portal>
+              <Menu.Content>
+                <Menu.Item onSelect={props.onRename}>{language.t("common.rename")}</Menu.Item>
+                <Menu.Separator />
+                <Menu.Item onSelect={props.onRemove}>{language.t("sidebar.workspace.remove.title")}</Menu.Item>
+              </Menu.Content>
+            </Menu.Portal>
+          </Menu>
+        </span>
       </div>
-      <Show when={props.expanded}>
-        <div class="flex flex-col gap-[3px] pb-1">
+      <Show when={props.expanded && !props.unavailable}>
+        <div data-workspace-action class="flex flex-col gap-[3px] pb-1">
           <Show when={props.row.status === "loading"}>
             <div class="ps-8 pe-2 py-1.5">
               <Loader
