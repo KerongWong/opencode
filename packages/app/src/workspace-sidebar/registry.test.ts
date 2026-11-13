@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, setSystemTime, test } from "bun:test"
-import { register, type WorkspaceEntry } from "./registry"
+import { directoryKey, hostPlatform, normalizeDirectory, register, type WorkspaceEntry } from "./registry"
 
 const app: WorkspaceEntry = { directory: "D:/code/app", title: "My app", order: 3, createdAt: 500 }
 
@@ -38,5 +38,46 @@ describe("register", () => {
 
     expect(result.entries).toEqual([{ directory: "D:/code/app", title: "app", order: 0, createdAt: 1_000 }])
     expect(result.entry).toBe(result.entries[0])
+  })
+})
+
+describe("normalizeDirectory", () => {
+  test.each([
+    ["win32", "D:\\code\\app\\", "D:/code/app"],
+    ["win32", "D:/a//b/", "D:/a/b"],
+    ["win32", "c:/x", "C:/x"],
+    ["win32", "c:/", "C:/"],
+    ["win32", "C:", "C:/"],
+    ["win32", "C:\\", "C:/"],
+    ["win32", "\\\\server\\share\\x\\", "//server/share/x"],
+    ["linux", "/home/me/proj/", "/home/me/proj"],
+    ["linux", "/a//b", "/a/b"],
+    ["linux", "/", "/"],
+    ["linux", "/Home/Me/Proj", "/Home/Me/Proj"],
+    ["darwin", "/Users/Me/Proj/", "/Users/Me/Proj"],
+    ["darwin", "/users/me/project", "/users/me/project"],
+  ] as const)("%s normalizes %p to %p", (platform, input, expected) => {
+    expect(normalizeDirectory(input, platform)).toBe(expected)
+  })
+})
+
+describe("directoryKey", () => {
+  test("ignores case on Windows", () => {
+    expect(directoryKey("D:/Proj", "win32")).toBe(directoryKey("d:/proj", "win32"))
+  })
+
+  test.each(["linux", "darwin"] as const)("keeps case on %s", (platform) => {
+    expect(directoryKey("D:/Proj", platform)).not.toBe(directoryKey("D:/proj", platform))
+  })
+})
+
+describe("hostPlatform", () => {
+  test.each([
+    ["macos", "darwin"],
+    ["windows", "win32"],
+    ["linux", "linux"],
+    [undefined, "linux"],
+  ] as const)("maps %p to %s", (os, expected) => {
+    expect(hostPlatform(os)).toBe(expected)
   })
 })

@@ -1,4 +1,5 @@
 import { Schema } from "effect"
+import type { Platform } from "@/runtime/platform/platform"
 import { Persistence } from "@/runtime/persistence/schema"
 
 export type HostPlatform = "win32" | "darwin" | "linux"
@@ -16,16 +17,43 @@ export const WorkspaceEntrySchema = Persistence.struct({
 export type WorkspaceEntry = typeof WorkspaceEntrySchema.Type
 
 /**
+ * The only mapping from the host OS vocabulary to the normalization platform. `DesktopOS` is not
+ * exported, so this reads the same union through `Platform["os"]`; a browser has no host OS and the
+ * directory picker is desktop-only, so Web falls back to POSIX rules.
+ */
+export function hostPlatform(os: Platform["os"]): HostPlatform {
+  if (os === "macos") return "darwin"
+
+  if (os === "windows") return "win32"
+
+  return "linux"
+}
+
+/**
  * The client has no `fs`, so a directory cannot be resolved through symlinks or 8.3 short names: an
- * alias registers as a second workspace. Accepted residual, not silently normalized away.
+ * alias registers as a second workspace. Accepted residual, not silently normalized away. A Windows
+ * drive root keeps its slash (`C:/`) because the server only stores paths matching `^[A-Za-z]:/`.
  */
 export function normalizeDirectory(input: string, platform: HostPlatform) {
-  const trimmed = trimTrailingSeparators(input.replaceAll("\\", "/"))
+  const fused = fuseSeparators(input.replaceAll("\\", "/"))
+  const cased = platform === "win32" ? upperDrive(fused) : fused
+
+  if (cased === "/") return "/"
+
+  if (/^[A-Za-z]:$/.test(cased)) return `${cased}/`
+
+  if (/^[A-Za-z]:\/$/.test(cased)) return cased
+
+  const trimmed = trimTrailingSeparators(cased)
 
   return trimmed === "" ? "/" : trimmed
 }
 
-/** Only compares spellings of the same directory; a record stores `normalizeDirectory` instead. */
+/**
+ * Only compares spellings of the same directory; a record stores `normalizeDirectory` instead.
+ * Case-insensitive filesystems (default APFS / NTFS) can still yield two rows for one directory,
+ * the same accepted residual as symlink aliases.
+ */
 export function directoryKey(directory: string, platform: HostPlatform) {
   const normalized = normalizeDirectory(directory, platform)
 
@@ -54,6 +82,19 @@ export function register(entries: WorkspaceEntry[], input: { directory: string; 
   }
 
   return { entries: [...entries, entry], entry }
+}
+
+/** Keeps a UNC prefix's leading `//` while collapsing separators inside the rest of the path. */
+function fuseSeparators(value: string) {
+  const prefix = value.startsWith("//") && !value.startsWith("///") ? "//" : ""
+
+  return prefix + value.slice(prefix.length).replace(/\/{2,}/g, "/")
+}
+
+function upperDrive(value: string) {
+  if (!/^[A-Za-z]:/.test(value)) return value
+
+  return value.slice(0, 1).toUpperCase() + value.slice(1)
 }
 
 function trimTrailingSeparators(value: string) {
