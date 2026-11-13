@@ -75,32 +75,37 @@ Roadmap: `.planning/ROADMAP.md` — milestone v2.0「工作区登记侧栏」。
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| REG-01 | TBD | Pending |
-| REG-02 | TBD | Pending |
-| REG-03 | TBD | Pending |
-| REG-04 | TBD | Pending |
-| ROW-01 | TBD | Pending |
-| ROW-02 | TBD | Pending |
-| ROW-03 | TBD | Pending |
-| ROW-04 | TBD | Pending |
-| ROW-05 | TBD | Pending |
-| ROW-06 | TBD | Pending |
-| UX-01 | TBD | Pending |
-| UX-02 | TBD | Pending |
-| UX-03 | TBD | Pending |
-| UX-04 | TBD | Pending |
-| UX-05 | TBD | Pending |
-| PST-01 | TBD | Pending |
-| PST-02 | TBD | Pending |
-| SYNC-01 | TBD | Pending |
-| SYNC-02 | TBD | Pending |
-| SYNC-03 | TBD | Pending |
+| REG-01 | Phase 1 | Pending |
+| REG-02 | Phase 1 | Pending |
+| REG-03 | Phase 1 | Pending |
+| REG-04 | Phase 2 | Pending |
+| ROW-01 | Phase 2 | Pending |
+| ROW-02 | Phase 2 | Pending |
+| ROW-03 | Phase 2 | Pending |
+| ROW-04 | Phase 2 | Pending |
+| ROW-05 | Phase 2 | Pending |
+| ROW-06 | Phase 2 | Pending |
+| UX-01 | Phase 2 | Pending |
+| UX-02 | Phase 2 | Pending |
+| UX-03 | Phase 2 | Pending |
+| UX-04 | Phase 2 | Pending |
+| UX-05 | Phase 2 | Pending |
+| PST-01 | Phase 2 | Pending |
+| PST-02 | Phase 1 | Pending |
+| SYNC-01 | Phase 3 | Pending |
+| SYNC-02 | Phase 3 | Pending |
+| SYNC-03 | Phase 3 | Pending |
 
 **Coverage:**
 - v1 requirements: 20 total
-- Mapped to phases: 0 (roadmap pending)
-- Unmapped: 20
+- Mapped to phases: 20
+- Unmapped: 0
+
+**Per phase:**
+- Phase 1 (登记表数据模型与纯函数): REG-01, REG-02, REG-03, PST-02 — 4
+- Phase 2 (侧栏渲染与会话投影): REG-04, ROW-01..06, UX-01..05, PST-01 — 13
+- Phase 3 (上游触点收敛与打包隔离): SYNC-01, SYNC-02, SYNC-03 — 3
 
 ---
 *Requirements defined: 2026-11-13*
-*Last updated: 2026-11-13 — v2.0 requirements defined*
+*Last updated: 2026-11-13 — v2.0 roadmap created; REG-04 由 Phase 1 改映射到 Phase 2（需 `session.list`，超出 Phase 1 的纯单测验收）*

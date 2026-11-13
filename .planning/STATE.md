@@ -3,10 +3,10 @@ gsd_state_version: "1.0"
 milestone: v2.0
 milestone_name: 工作区登记侧栏
 status: planning
-last_updated: "2026-11-13T15:49:40.398Z"
+last_updated: "2026-11-13T16:10:00.000Z"
 last_activity: 2026-11-13
 progress:
-  total_phases: 0
+  total_phases: 3
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -19,20 +19,23 @@ progress:
 
 See: .planning/PROJECT.md (updated 2026-11-13)
 
-**Core value:** 无论启动顺序、仓库布局、服务器 URL 如何变化，Projects 侧栏都稳定显示「我的项目 × 本地 checkout」及其会话。
-**Current focus:** Phase 02 — 每个本地 checkout 成行
+**Core value:** 侧栏显示什么完全由我的登记表决定：登记哪个本地文件夹就出现哪一行；同一仓库两份拷贝是两行；移除只是藏起来，目录、git 与会话分毫不动，重新登记即回来。
+**Current focus:** Phase 1 — 登记表数据模型与纯函数
+**SPEC:** `docs/designs/workspace-registry-sidebar.md`（§8 按文件实施、§11 验证、§12 冲突预算）
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-11-13 — Milestone v2.0 started
+Phase: 1 of 3 (登记表数据模型与纯函数)
+Plan: 0 of TBD in current phase
+Status: Ready to plan
+Last activity: 2026-11-13 — v2.0 roadmap created（3 phases，20/20 requirements mapped）
+
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
+- Total plans completed: 0 (v2.0)
 - Average duration: -
 - Total execution time: 0 hours
 
@@ -40,24 +43,15 @@ Last activity: 2026-11-13 — Milestone v2.0 started
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01 | 4 | - | - |
-| 02 | 2 | - | - |
+| 1 | - | - | - |
+| 2 | - | - | - |
+| 3 | - | - | - |
 
 **Recent Trend:**
 - Last 5 plans: -
 - Trend: -
 
 *Updated after each plan completion*
-**Per-Plan Metrics:**
-
-| Plan | Duration | Tasks | Files |
-|------|----------|-------|-------|
-| Phase 01 P01 | 13m | 2 tasks | 3 files |
-| Phase 01 P02 | 14m | 3 tasks | 5 files |
-| Phase 01 P03 | 8min | 2 tasks | 3 files |
-| Phase 01 P04 | - | 2 tasks | 3 files |
-| Phase 02 P01 | 6min | 2 tasks | 2 files |
-| Phase 02 P02 | 48min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -66,20 +60,10 @@ Last activity: 2026-11-13 — Milestone v2.0 started
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
-- [Roadmap]: 三个 phase 按身份层级切分（会话行源 → checkout 身份 → 持久化 key），而不是按文件切分；每个修复先有能失败的测试。
-- [Roadmap]: 沿用 `createSessionInbox` 作为唯一数据源，通过参数/合并层收紧窗口，不新建会话缓存（见 PROJECT.md Revisit 项）。
-- [Roadmap]: `known` 会话的取舍在 Phase 1 定案（仅索引窗口，或索引 + 按 `time.updated` 上界的 known 切片），Phase 2 不得再改行源。
-- [Phase 01]: merge 的第一个参数就是抓取到的页面：数组（含空数组）代表页面已获取并据此定界，只有 undefined 才回退到 known 列表，首屏与离线行为不变 — TanStack Query 已区分 no data 与空页面，entries() 把该区别透传，无需新增 option 字段（关闭 truth 5/6 与 01-02 扩窗禁令）
-- [Phase 01]: floor 只由最终能存活的 root 行推导（跳过 parentID 与归档行，种子为 +Infinity），过滤掉的行不能降低下限 — 同时关闭 REVIEW WR-01；空页面得到无人可及的下限，混合页面无法放宽窗口
-- [Phase 01]: inbox-sessions 请求 archived: false，只取活跃 root，归档行不再占用 50 个索引槽 — 与服务端仅在该参数存在时过滤的实现一致（store.ts:160-161），也是 app 内其它 root 会话列表的既有约定（CR-01 / T-01-06）
-- [Phase 01]: 空页面的下限取查询的 `dataUpdatedAt`（`fetchedAt`），不再用 `+∞`；只有页面无存活 root 时才启用，非空页面仍以存活行最小时间为准 — 抓取后新建的会话无需 refetch 即成行（truth 7 / CR-01），Inbox 仍不传 bound
-- [Phase 02]: 进入 Projects 模式的清单读取用「组件体内 Set + worktrees.cached()」双保险：Set 挡同挂载期（含会话更新引发的 effect 重跑），cached 挡切走再切回（list 的 staleTime: 0 不判空必然重发）
-- [Phase 02]: 清单读取只经 entry.ctx.sync.worktrees（按 ServerScope 分区）且只调 list；projects.tsx 中永不出现 refresh / global.serverCtx(，失败静默降级到 sandboxes 兜底，不重试、不 toast、不引入 loading
-- [Phase 02]: Phase 2 的成功标准 4 选择「不显示」分支（D-10）：空 checkout 不生成行，行源仍由 inbox.entries() 推导；理由记入 docs/designs/project-grouped-sessions-sidebar.md §已知取舍 第 4 条
-- [Phase 02]: 根集合显式包含 canonical：`sandboxes` 从不含 `project.worktree`，元数据也可能只带 canonical，缺这一项 `repo/packages/ui` 这类会话会退化成按会话目录成行
-- [Phase 02]: 分组 key 表达式一字未改（`${server}\u0000${comparablePath(checkout)}`）：清单到达只改变归属选择，不改写已有 checkout 的身份（D-08）
-- [Phase 02]: D-09 的缓存键用元数据对象（WeakMap）而非 `project.id`：`withWorktreeInventory` 会为同一 id 重写 `sandboxes`，按 id 记忆会让清单揭示的更深 checkout 永远不生效
-- [Phase 02]: strobe 的 `--base origin/dev` 对 `projects-groups.ts` 不成立（上游无此文件，exp_eedb3c 无 verdict），改用 02-01 的 head `777504be9c`；加缓存前 cpu.work +1499%，加缓存后 +3%（CI -1%..+7%，无判定）
+- [Roadmap]: phase 边界按 SPEC 建议切分（模型 → 可见性 → 接缝），不按文件切分；v2.0 编号从 1 重启，不延续 v1.0。
+- [Roadmap]: `REG-04`（登记后用 `session.list` 的 `location.directory` 校准服务端拼写）落在 Phase 2，而不是 SPEC 建议的 Phase 1——Phase 1 的验收是纯单测，而该要求需要 HTTP 层（`row-sessions.ts`）。
+- [Roadmap]: 回退只由 Phase 3 拥有；Phase 1–2 从空目录新写模块，不修复、不复用 v1.0 的会话派生行代码。
+- [Roadmap]: Phase 1 的成功判据是「修复前失败的纯单测」，Phase 2 是「可见性与交互 + 文件级 typecheck」，Phase 3 是「diff 预算与隔离实测」——三者不互相替代。
 
 ### Pending Todos
 
@@ -87,10 +71,12 @@ None yet.
 
 ### Blockers/Concerns
 
-- [Phase 2] 改动仍落在侧栏重算热路径（`entries()`/`groups()`）：Phase 1 已用 strobe 对 `origin/dev` 建立 `session-index` 基线（verdict less），Phase 2 改动需同样度量。
-- [Phase 2] `Project.worktrees` 初始只有 canonical，必须把「未加载」当正常状态处理，不能在渲染中 `refresh`。
-- [全局] 不得重启应用或 sidecar 服务器进程；只能通过 dev 服务器（`bun dev serve --port 4096` + `packages/app` 的 `bun dev`）验证。
-- [Phase 3] 迁移必须只读 v1、写 v2，禁止原地改写 v1，否则回退到旧构建会丢状态。
+- [全局] 客户端没有 `fs`：归一只做分隔符 / 尾斜杠 / Windows 大小写，符号链接别名会登记成两个工作区（已承认的残余，不假装解决）。
+- [全局] 不得派发 `location.get`（会创建 project 行）；登记流程只用 `session.list`。
+- [全局] `packages/app/src/custom-elements.d.ts` 是符号链接，未开开发者模式时整包 typecheck 失败——用 `bun check --no-script <files>` 做文件级门，并把该缺陷与本次改动区分开。
+- [全局] 不得重启已安装的应用或服务进程；验证走 dev 服务器与 `OPENCODE_CHANNEL=fork` 新构建。
+- [Phase 2] `archived` / `unarchived` / `deleted` 事件只带 `sessionID`，必须靠内存映射做行级刷新，不能退回全局重扫。
+- [Phase 3] 触点预算（5 文件 / ~10 行 / 0 删除）是需求而非偏好；任何超出都要先收口再继续。
 
 ## Deferred Items
 
@@ -102,6 +88,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-11-13T08:43:22.789Z
-Stopped at: Phase 02 complete, ready to plan Phase 3
+Last session: 2026-11-13T16:10:00.000Z
+Stopped at: v2.0 roadmap created（ROADMAP.md / STATE.md / REQUIREMENTS.md traceability 已写）
 Resume file: None
