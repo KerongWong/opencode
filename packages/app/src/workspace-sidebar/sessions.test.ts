@@ -213,6 +213,18 @@ function setup() {
 describe("createWorkspaceSessions", () => {
   const app = entry("D:/code/app", 0)
 
+  test("never loads a row for a removed record", async () => {
+    const fixture = setup()
+    const { api, dispose } = fixture.mount([entry("D:/code/app", 0, 5)])
+
+    api.load()
+    await tick()
+
+    expect(api.rows()).toEqual({})
+    expect(fixture.state.listCalls).toEqual([])
+    dispose()
+  })
+
   test("loads a row and probes its directory even when the row lists sessions", async () => {
     const fixture = setup()
     fixture.state.sessions = [session("ses_one", "D:/code/app")]
