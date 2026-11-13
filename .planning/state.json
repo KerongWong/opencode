@@ -1,0 +1,28 @@
+{
+  "contract": "1.0.0",
+  "flavor": "core",
+  "milestone": "v1.0 — Projects 侧栏正确性",
+  "phases": [
+    {
+      "number": "1",
+      "name": "行源收敛",
+      "status": "complete"
+    },
+    {
+      "number": "2",
+      "name": "每个本地 checkout 成行",
+      "status": "complete"
+    },
+    {
+      "number": "3",
+      "name": "持久化 key 与接缝文档",
+      "status": "pending"
+    }
+  ],
+  "next": {
+    "command": "/gsd-progress --next",
+    "label": "Advance to the next step (plan phase 3)",
+    "reason": "Phase 3 of 3 — needs a plan"
+  },
+  "updated_at": "2026-11-13T12:31:53.293Z"
+}
