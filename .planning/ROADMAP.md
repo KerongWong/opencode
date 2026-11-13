@@ -14,8 +14,8 @@
 - Integer phases (1, 2, 3): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
-- [ ] **Phase 1: 行源收敛** - 只从单一有界会话窗口生成项目行，归档与进程内临时会话不再造行
-- [ ] **Phase 2: 每个本地 checkout 成行** - 进入模式时按需加载 worktree 清单，并用 `sandboxes` 兜底分组
+- [x] **Phase 1: 行源收敛** - 只从单一有界会话窗口生成项目行，归档与进程内临时会话不再造行 (completed 2026-11-13)
+- [x] **Phase 2: 每个本地 checkout 成行** - 进入模式时按需加载 worktree 清单，并用 `sandboxes` 兜底分组 (completed 2026-11-13)
 - [ ] **Phase 3: 持久化 key 与接缝文档** - 统一 group key 构造/解析，迁移并裁剪 v1 状态，校准接缝表
 
 ## Phase Details
@@ -30,9 +30,11 @@
   2. 本进程内打开一个早于服务器索引窗口的旧会话后，Projects 的项目行集合不变；重启应用后看到的仍是同一组项目。
   3. Projects 与 Inbox 对归档的判断一致：Inbox 的归档分区仍能看到该会话，Projects 的活跃行永远看不到它。
   4. `packages/app` 下运行的测试覆盖 `mergeRootSessionIndex` 的「archived known session」与「known-only（离线）列表」两种契约，并且这些用例在修复前的代码上失败。
-**Plans**: 3/3 plans executed (including the 01-03 gap-closure plan)
+**Plans**: 4/4 plans complete (including the 01-03 gap-closure plan)
 
 Plans:
+- [x] 01-04-PLAN.md
+
 **Wave 1**
 - [x] 01-01: 归档会话不再产生项目行——`mergeRootSessionIndex` 增加 `includeArchived` 选项（默认保留归档），`createSessionInbox` 按 `options.archived` 派生并传入；新增 `session-index` 的 archived-known / live-archive / Inbox 默认契约测试（修复前失败）。
 
@@ -41,6 +43,12 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 - [x] 01-03: 关闭验证缺口——`inbox-sessions` 只请求活跃 root（`archived: false`）；`mergeRootSessionIndex` 以「页面已获取 / 未获取」区分空页面与离线，floor 仅由可存活行推导；补 50 条全归档页面、重启一致性与混合页面回归，并复用既有 strobe 用例测量。
+
+**Cross-cutting constraints:** <!-- gsd:generated -->
+- Opening a session older than the server index window and returning to Projects leaves the project rows unchanged.
+- A session created after the index fetch still gets a project row without waiting for a refetch.
+- A fetched page that leaves no active root makes Projects show no row instead of merging every locally known root.
+- With no page fetched (first paint or offline), Projects still lists the locally known root sessions.
 
 **UI hint**: yes
 
@@ -55,11 +63,12 @@ Plans:
   3. worktree 清单返回前，分组已经使用 `project.sandboxes`；清单到达后不会把已有的 checkout 行拆成多行，也不会改写已有行的 group key。
   4. 若某份 checkout 在会话窗口内没有任何会话，该行要么以空组可见，要么在 `docs/designs/project-grouped-sessions-sidebar.md` 中记录不显示它的理由（二选一，并在验证记录中指明选了哪个）。
   5. `projects-groups` 的回归测试同时覆盖「有 inventory」与「只有 canonical + sandboxes」两条路径，且在修复前失败。
-**Plans**: 2 plans
+**Plans**: 2/2 plans complete
 
 Plans:
-- [ ] 02-01: 在 `projects.tsx` 为可见项目按需请求 worktree inventory（优先 `cached`、每个 `projectID` 一次、渲染期间不 `refresh`），符合 `workspaces/inventory.ts` 的 `staleTime: Infinity` 约定。
-- [ ] 02-02: 在 `projects-groups.ts` 的 `sessionProjectDirectory` 增加 `project.sandboxes` 兜底，并补两条路径的回归测试（inventory / canonical + sandboxes）。
+**Wave 1** *(两个计划文件互不重叠，可并行)*
+- [x] 02-01: 在 `projects.tsx` 为可见项目按需请求 worktree inventory（优先 `cached`、每个 `projectID` 一次、渲染期间不 `refresh`），符合 `workspaces/inventory.ts` 的 `staleTime: Infinity` 约定；并在设计文档记录「不显示空 checkout 行」的取舍（D-10/D-11）。
+- [x] 02-02: 在 `projects-groups.ts` 的 `sessionProjectDirectory` 增加 `project.sandboxes` 兜底，并补两条路径的回归测试（inventory / canonical + sandboxes）；用 `perf/projects-groups.bench.ts` 对 `origin/dev` 度量分组热路径。
 
 **UI hint**: yes
 
@@ -88,6 +97,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. 行源收敛 | 3/3 | In Progress | - |
-| 2. 每个本地 checkout 成行 | 0/2 | Not started | - |
+| 1. 行源收敛 | 4/4 | Complete    | 2026-11-13 |
+| 2. 每个本地 checkout 成行 | 2/2 | Complete    | 2026-11-13 |
 | 3. 持久化 key 与接缝文档 | 0/3 | Not started | - |

@@ -1,18 +1,16 @@
 ---
 phase: 01-row-source-convergence
-reviewed: 2026-11-12T17:18:30Z
+reviewed: 2026-11-13T11:20:19Z
 depth: standard
-files_reviewed: 5
+files_reviewed: 3
 files_reviewed_list:
-  - packages/app/perf/session-index.bench.ts
-  - packages/app/perf/session-index.ts
-  - packages/app/src/runtime/server/session-index.test.ts
   - packages/app/src/runtime/server/session-index.ts
+  - packages/app/src/runtime/server/session-index.test.ts
   - packages/app/src/shell/titlebar/inbox-model.ts
 findings:
-  critical: 2
-  warning: 2
-  info: 5
+  critical: 0
+  warning: 5
+  info: 4
   total: 9
   necessity: 1
 status: issues_found
@@ -20,123 +18,89 @@ status: issues_found
 
 # Phase 01: Code Review Report
 
-**Reviewed:** 2026-11-12T17:18:30Z
+**Reviewed:** 2026-11-13T11:20:19Z
 **Depth:** standard
-**Files Reviewed:** 5
+**Files Reviewed:** 3
 **Status:** issues_found
 
 ## Summary
 
-I reviewed the page-or-`undefined` merge contract, the survivor-only floor, the `archived: false` page request and the five new cases against `01-03-PLAN.md`, `01-03-SUMMARY.md`, `01-VERIFICATION.md` and the hard constraints in `AGENTS.md` / `packages/app/AGENTS.md`. The core mechanism is right: `undefined` now means "no page" and any array bounds, the floor is reduced only over rows the final filter can keep, and the `passive` branch and final filter are byte-identical to the pre-plan file, so truths 3, 7 and SRC-01 do not regress. I re-ran the unit tests (`25 pass / 0 fail` across `session-index.test.ts` and `home/sessions/index.test.ts`), `bunx oxlint` on the five files, `bun run typecheck:e2e` (no diagnostics in `perf/` or the three source files) and `bun script/lint-changed.ts db7df8d999`.
+I reviewed the plan 01-04 change (`618fbc20` → `7a61e655`, commits `6038a4ed0b`, `8bfcca7273`, `7a61e6550f`) on the three files it touches, against `01-04-PLAN.md`, `01-04-SUMMARY.md`, the prior `01-REVIEW-DISPOSITION.md` and the rules in `AGENTS.md` / `packages/app/AGENTS.md`. I re-ran the unit file on the delivered tree: **19 pass / 0 fail**, matching the SUMMARY.
 
-Two things block the change as delivered. First, the `Number.POSITIVE_INFINITY` floor is the wrong sentinel for an empty fetched page: it drops *every* known root, including a session created **after** the fetch, and nothing in the tree refetches `inbox-sessions` on `session.created` — so a fresh install (or the all-archived state this phase targets) shows "No sessions yet" in Projects while the session the person just created is open in the pane. Second, `bun run lint:changed HEAD^1` — the `Lint changed files` CI job — fails on the delivered tree, because two edited files still carry `anti-slop(require-readable-spacing)` warnings that IN-03 descoped.
+**The precedence logic is correct as written.** `survivors === undefined` (no bounded page, or `boundedKnown` unset) is checked before the fetch time, so a `boundedKnown: false` caller — the Inbox — ignores `fetchedAt` entirely; a finite survivor minimum wins (`Number.isFinite`), so `fetchedAt` can neither tighten nor widen a non-empty page; only the `Infinity` sentinel falls through to `options.fetchedAt`. I traced the three production callers (`inbox-model.ts:203`, `home/sessions/index.ts:42`, `shell/commands/palette.ts:298`) and only the Projects view reaches the new floor. The known loop (`session-index.ts:49`), the `passive` recency branch (`:51-52`) and the final `!parentID && includeArchived !== false` filter (`:55-57`) are byte-identical to `diff_base`, so archived/child filtering and the Projects-only bound are unchanged. Prior **CR-01** and **CR-02** are closed by this plan.
 
-The two warnings are a duplicated test case and the fact that the phase's central behaviour (`archived: false`) has no automated regression at all: the e2e mock server treats an omitted `archived` parameter as `archived=false`, which is the inverse of the real store, so no e2e test can observe either the old bug or the fix.
+What remains is that the new floor's *source* is weaker than the code claims. `dataUpdatedAt` is not "when the page was fetched": every `setQueryData` in this same file (`forget()`, `move()`) advances it, and it is a client wall clock compared against a server timestamp. Both defects are bounded in blast radius (they only matter while the page is empty and need another write or a skewed clock), so nothing here is a blocker — but the doc comments state an invariant the code does not hold, and the two new guarantees are pinned only at shapes production no longer uses, or not at all.
 
-## Critical Issues
-
-### CR-01: An empty fetched page drops sessions created after the fetch, and nothing refetches them
-
-**File:** `packages/app/src/runtime/server/session-index.ts:25-38` (with `packages/app/src/shell/titlebar/inbox-model.ts:134-137, 198-205`)
-**Issue:** When the fetched page has no surviving root, the floor is `Number.POSITIVE_INFINITY`, so the skip at line 38 (`info.time.updated < floor`) drops **every** known root — including a session created or updated after the fetch, which is inside any window by definition. This is reachable in two ordinary states:
-
-1. **Fresh install.** `session.list({ limit: 50, order: "desc", parentID: null, archived: false })` returns `{ data: [] }`; `parseHomeSessionIndex([])` is `[]`; `active` is `[]` (a fetched page, not `undefined`), so the floor is `Infinity`. The person creates their first session (`titlebar.tsx:469` is available while `SidebarProjects` is mounted); it lands in `data.session.known()`, but the merge drops it and Projects renders `"sidebar.projects.empty"` → **"No sessions yet"** (`packages/app/src/runtime/i18n/en.ts:819`) while that session is open in the main pane.
-2. **The all-archived state this plan exists for.** Same floor, same drop.
-
-Nothing recovers while the sidebar stays mounted. The plan's rationale ("until the page refetches (30s stale time, `refetchOnMount`, window focus)") does not hold: `staleTime: 30_000` (`inbox-model.ts:135`) never triggers a refetch by itself, `refetchOnWindowFocus` is `false` globally (`app.tsx:32`), and no handler invalidates `["inbox-sessions", conn]` on `session.created` — the only invalidation points are `rename-session.ts:24`, `recent-sessions.tsx:680` (archive) and `delete` paths. `retry: false` (`inbox-model.ts:134`) means even a transient failure sticks until a remount or reconnect. Before this change the known-only fallback showed the new session; this is therefore a regression against `origin/dev`, not only the accepted "old sessions stay hidden" trade-off.
-
-**Fix:** Make a post-fetch creation invalidate the window (cheap, and it re-derives a real floor because the new session is the newest active root):
-
-```ts
-// inbox-model.ts, inside the existing event effect (lines 99-121), next to the session.deleted handler
-onCleanup(
-  item.ctx.data.on("session.created", (event) => {
-    if (event.data.parentID) return
-    void queryClient.invalidateQueries({ queryKey: ["inbox-sessions", item.conn], exact: true })
-  }),
-)
-```
-
-If you prefer to fix it in the merge rather than with a request, pass the page's fetch time and use it instead of `Infinity` when no page row survives, so `time.updated >= fetchedAt` keeps post-fetch work in the window. Either way, add a case pinning it: `mergeRootSessionIndex([], [session("new", { time: { created: 2, updated: 2 } })], { includeArchived: false, boundedKnown: true })` must keep `new` — today it returns `[]`.
-
-### CR-02: `Lint changed files` (CI) fails on the delivered tree
-
-**File:** `packages/app/src/runtime/server/session-index.ts:35`, `packages/app/src/runtime/server/session-index.test.ts:99`
-**Issue:** `script/lint-changed.ts` fails on *any* oxlint diagnostic, warn-level included (`script/lint-changed.ts:56-60`), and `.github/workflows/check.yml:39-43` runs it on every pull request. Reproduced on the current tree:
-
-```
-$ bun script/lint-changed.ts db7df8d999
-packages/app/src/runtime/server/session-index.ts:35:3  anti-slop(require-readable-spacing)  Expected blank line before this statement.
-packages/app/src/runtime/server/session-index.test.ts:99:5  anti-slop(require-readable-spacing)  Expected blank line before this statement.
-lint:changed: 2 problem(s) in 2 of 3 changed files since db7df8d999
-exit=1
-```
-
-`session-index.ts:35` is inside this plan's changed hunk (the `rows` line was rewritten), and the test file is edited by this plan. `01-03-PLAN.md` explicitly deferred IN-03 ("lint spacing") as out of scope, but both files are edited by the phase, so the deferral turns a pre-existing warning into a merge gate the branch cannot pass. Root `bun run lint` still exits 0, which is why the SUMMARY's "2 warnings, 0 errors" reading missed it.
-
-**Fix:** Add the two blank lines:
-
-```ts
-      : undefined
-
-  const rows = new Map((indexed ?? []).map((info) => [info.id, info]))
-```
-
-```ts
-    const indexed = session("a", { title: "indexed", time: { created: 1, updated: 300, idle: 5 } })
-
-    const known = session("a", {
-```
+Carried-over findings that are still live on the delivered tree: the duplicated test case (prior WR-01 → WR-05 here), the `includeArchived` doc comment (prior IN-01 → IN-02), the failed-request widening (prior IN-02 → IN-03) and the all-archived fixture's premise (prior IN-05 → IN-04). Prior IN-03 (bench inventory) and IN-04 (survivor predicates) are outside this scope or unchanged; IN-04's point survives in the new necessity note below.
 
 ## Warnings
 
-### WR-01: A new test case duplicates an existing one exactly
+### WR-01: `fetchedAt` is the last cache write time, not the fetch time, so local writes silently tighten the new floor
 
-**File:** `packages/app/src/runtime/server/session-index.test.ts:163-168`
-**Issue:** `"a known root created after a non-empty page still joins"` is byte-for-byte the same contract as `"a known root created after the index fetch still joins"` at `:90-95` — same fixtures (`a` 300 `/repo`, `b` 200 `/repo`, `d` 400 `/other`), same call `mergeRootSessionIndex([a, b], [d], { includeArchived: false, boundedKnown: true })`, same `["a", "b", "d"]` and `["srv\u0000/repo", "srv\u0000/other"]` assertions. It fails the third test-admission question in `packages/app/AGENTS.md` ("why does no existing test already catch that regression") and the "One contract, one owner" rule, and `01-03-SUMMARY.md` claims duplicate coverage was deduplicated for the other two Task-1 behaviours — this one was not.
-**Fix:** Delete `:163-168`. The `bounded known window` copy at `:90-95` stays the owner of the post-fetch join contract.
+**File:** `packages/app/src/shell/titlebar/inbox-model.ts:90-97, 209, 422-430` (with `packages/app/src/runtime/server/session-index.ts:43-44`)
+**Issue:** `dataUpdatedAt` is advanced by `setQueryData` as well as by a fetch: `queryClient.setQueryData` dispatches a manual `success` that runs `successState(data, options.updatedAt)` → `dataUpdatedAt: dataUpdatedAt ?? Date.now()` (`@tanstack/query-core@5.91.2/build/modern/queryClient.js:93-104`, `query.js:60-68, 411-419`). This file writes the same `["inbox-sessions", <conn>]` key from `forget()` (line 91, from the `session.deleted` handler registered at `:101` by **every** `createSessionInbox` instance, including the Projects one at `projects.tsx:57`) and from `move()` (line 426 for the archive/unarchive path). So in the empty-page state this plan exists for — fresh install, or every root archived — a deletion or an Inbox archive/unarchive rewrites the cached page, moves `dataUpdatedAt` to "now", and the empty page's floor becomes "now". Every known root updated between the fetch and that write (which is exactly what the fix was added to keep) is dropped until the page refetches. The `fetchedAt` doc (`session-index.ts:9-11`) and the `entries()` comment (`inbox-model.ts:195-198`) call this "the time the page was fetched", which is false after a local write. This is not a regression against `diff_base` (the old `Infinity` dropped those rows too), but it is an incomplete fix plus a doc claim the code does not satisfy.
+**Fix:** Keep the "fetch time" meaning by preserving the timestamp on local writes:
+```ts
+const patch = (key: readonly unknown[], update: (current: SessionInfo[] | undefined) => SessionInfo[] | undefined) =>
+  queryClient.setQueryData<SessionInfo[]>(key, update, {
+    updatedAt: queryClient.getQueryState(key)?.dataUpdatedAt,
+  })
+```
+and route `forget()`/`move()` through it. Trade-off to note in the commit: preserving `updatedAt` leaves the locally patched page stale, which is arguably correct (it is no longer a server page). If the behavior is accepted instead, both doc comments must say the bound is the last page *change* time, not the fetch time.
 
-### WR-02: The phase's central behaviour has no automated regression, and the e2e mock cannot observe it
+### WR-02: The floor compares the client's wall clock with the server's timestamp, and no comment says so
 
-**File:** `packages/app/src/shell/titlebar/inbox-model.ts:132`
-**Issue:** `archived: false` is the entire fix for CR-01/the old REVIEW CR-01, and nothing can fail if a later refactor drops it. The plan records this as `human_judgment: true` (SUMMARY D7), but the reason it is untestable is itself a defect: `packages/app/e2e/utils/mock-server.ts:1201-1204` filters with `!!session.time.archived === (ctx.query.archived === "true")`, so an **omitted** `archived` already returns only active rows — the inverse of `packages/core/src/session/store.ts:160-161`, which includes both when the parameter is absent. Consequence: every existing Projects/Inbox e2e case passes with or without the new parameter, and the all-archived page head this plan defends against cannot be built in e2e at all. `typecheck:tsc` cannot catch an omitted optional parameter either.
-**Fix:** Fix the mock to honour omission (no parameter → both archive states, matching `store.ts:160-161`), then add one case to the Projects keeper: archive 50+ roots, open Projects, assert the in-window active projects are listed and an out-of-window session opened afterwards adds no row. Until then, keep the manual check in `WINDOWS.md` and say in the SUMMARY that the fix's premise is manually verified only.
+**File:** `packages/app/src/runtime/server/session-index.ts:8-12, 43-44`; `packages/app/src/shell/titlebar/inbox-model.ts:209`
+**Issue:** `time.updated` is the server's `SessionTable.time_updated` (`packages/schema/src/session.ts:48`, `packages/core/src/session/info.ts:52-59`), while `dataUpdatedAt` is the renderer's `Date.now()`. Every other comparison in this merge is server-vs-server, so the change introduces a cross-domain comparison — and both doc comments present the resulting bound as sound. With a client clock ahead of the server (the registry admits LAN/remote servers, and a drifting OS clock is ordinary), a session created after the fetch has `time.updated < floor`, gets no Projects row, and only recovers when the page refetches and comes back non-empty (which is what makes the SUMMARY's "a remount or reconnect re-derives" true — not the remount itself). `01-04-PLAN.md` records this as accepted (T-01-11); the code a future maintainer reads does not.
+**Fix:** Add one sentence to the `fetchedAt` doc and to the `entries()` comment: "`dataUpdatedAt` is the client wall clock while `time.updated` is the server's; the bound assumes the two agree (true for the local sidecar, approximate for a remote server)." If a hard guarantee is wanted later, take the timestamp from the server response rather than from the client.
+
+### WR-03: The Inbox now passes `fetchedAt`, and no case pins that the merge ignores it
+
+**File:** `packages/app/src/runtime/server/session-index.test.ts:119-125, 222-231`; `packages/app/src/shell/titlebar/inbox-model.ts:206-210`
+**Issue:** `entries()` supplies `fetchedAt` unconditionally, so the real Inbox call is `{ includeArchived: true, boundedKnown: false, fetchedAt: <number> }`. Both cases that pin "the Inbox keeps a known archived row" pass the options object **without** `fetchedAt` — a shape production no longer uses. The only thing keeping the Inbox unbounded is the `survivors === undefined ? undefined : …` guard at `session-index.ts:44`; the natural simplification `survivors ?? options.fetchedAt` is equivalent for the bounded view and would silently start bounding the Inbox, dropping the known archived row at `:123` and the first-paint row at `:228`. No case would fail.
+**Fix:** Pass `fetchedAt` in both `inbox` option objects (for example `fetchedAt: 400` against a known row at `updated: 100`) and keep the existing assertions. That is the shape the app now runs, and it is the guard a refactor would break.
+
+### WR-04: The wiring line has no automated regression, and both manual checks were left unrun
+
+**File:** `packages/app/src/shell/titlebar/inbox-model.ts:209`
+**Issue:** The whole fix depends on `entries()` reading `queries[index]?.dataUpdatedAt` and handing it to the merge; nothing fails if the argument is dropped, read from another index, or shadowed by a stale value. The merge-level cases supply their own `fetchedAt`, so they cannot observe the call site (the SUMMARY concedes this: D7 `human_judgment: true`, D10 `verification: []`). The reason it is "untestable" is itself a defect that survived from `01-REVIEW` WR-02: `packages/app/e2e/utils/mock-server.ts:1201-1204` filters with `!!session.time.archived === (ctx.query.archived === "true")`, so an **omitted** `archived` already returns only active rows — the inverse of `packages/core/src/session/store.ts:160-161`, which includes both when the parameter is absent. No Projects/Inbox e2e case can therefore build the all-archived page, and `typecheck` cannot see an omitted optional parameter. Both plan-mandated manual checks (create a session in the empty-page state and see its row; open an older unlisted session and see no new row) were not executed, so the call site is unverified in **both** directions on the delivered tree.
+**Fix:** Fix the mock's omission semantics to match `store.ts:160-161`, then add one case to the Projects keeper (`e2e/regression/tabs.spec.ts` or the sidebar suite): archive 50+ roots, open Projects, create a session and assert its project row appears without a remount; separately open an out-of-window session and assert no row is added. Until then, the feature's premise is manually verified only and the report should say so.
+
+### WR-05: A test case duplicates an existing one exactly
+
+**File:** `packages/app/src/runtime/server/session-index.test.ts:192-197` (duplicate of `:90-95`)
+**Issue:** `"a known root created after a non-empty page still joins"` uses the same fixtures (`a` 300 `/repo`, `b` 200 `/repo`, `d` 400 `/other` — declared twice, identically, at `:59-63` and `:131-134`), the same call `mergeRootSessionIndex([a, b], [d], { includeArchived: false, boundedKnown: true })` and the same two assertions as `"a known root created after the index fetch still joins"`. `packages/app/AGENTS.md` requires each behaviour to have one owning test and asks which credible regression the second copy catches; there is none. Carried from `01-REVIEW` WR-01, still open on the delivered tree.
+**Fix:** Delete `:192-197`. `:90-95` stays the owner of the post-fetch join contract.
 
 ## Info
 
-### IN-01: `includeArchived`'s doc comment states the opposite of the only caller
+### IN-01: Impossible-state guard — an empty page with no fetch time cannot occur for the only bounded caller
+
+**File:** `packages/app/src/runtime/server/session-index.ts:44` (with `packages/app/src/runtime/server/session-index.test.ts:145-153`)
+**Category:** necessity
+**Issue:** `options.fetchedAt` is consulted only when `boundedKnown` is set, a page exists, and no page row survives. The only caller that sets `boundedKnown` derives the page from `queries[index]?.data` (`inbox-model.ts:200`) and the time from `queries[index]?.dataUpdatedAt` (`:209`) for the same `index`, so any non-`undefined` page arrives with a `Date.now()`-based number (`query.js:411-419`; `dataUpdatedAt` is `0` only while `data` is `undefined`). "Page exists, fetch time absent" is unreachable at the call site, so the fallback's "no time bound" fail-open never fires in this stack. The case that pins it (`:147-153`) does not observe the contract its name claims either: its fixture is `created: 2, updated: 2`, not a session created after a fetch, and its comment ("The verifier's required call: … so a session this process created after the fetch still gets a row") describes an assertion the case cannot make. What actually pins the precedence of interest is `:234-242`.
+**Fix:** Keep the fallback (the plan's required call needs it) but say in the doc that it is a contract guarantee for callers that supply no time rather than a path this app takes, rename the case to what it proves ("an empty page with no fetch time applies no time bound"), and drop the process vocabulary ("the verifier's required call") from the source comment.
+
+### IN-02: `includeArchived`'s doc comment still states the opposite of the only caller
 
 **File:** `packages/app/src/runtime/server/session-index.ts:4`
-**Issue:** "Views that list archived sessions opt in; the Projects rows leave it unset." The Projects row source passes `includeArchived: false` (`inbox-model.ts:204`) and must, otherwise SRC-01 regresses; the default (`undefined`) *keeps* archived rows. A future caller who follows this comment omits the option and re-introduces archived project rows. Carried over from `01-01` (IN-01) and descoped by the plan, but it now describes the one call site the phase depends on.
+**Issue:** "Views that list archived sessions opt in; the Projects rows leave it unset." The Projects view passes `includeArchived: false` (`inbox-model.ts:207`) and must, otherwise SRC-01 regresses; the default (`undefined`) **keeps** archived rows. A caller who follows this comment re-introduces archived project rows. Carried from `01-REVIEW` IN-01; this plan rewrote the surrounding doc block without fixing it.
 **Fix:** "Omit to keep archived rows (Home, the palette); pass `false` to drop them (Projects)."
 
-### IN-02: A failed page request is indistinguishable from "no page", so one error widens the window
+### IN-03: A failed page request still widens the window to every known root, and the new floor does not apply
 
-**File:** `packages/app/src/shell/titlebar/inbox-model.ts:198-205` (with `:134-135`)
-**Issue:** With `retry: false` and no focus refetch, a failed `inbox-sessions` request leaves `active === undefined`, so the merge falls back to every known root — the exact widening truths 5/the 01-02 prohibition forbid — and stays there until a remount, reconnect or unrelated invalidation. `isError` is already read for the settle machine (`:294`), so the difference between "not fetched yet" and "fetch failed" is available. This matches the plan's "offline" case, hence Info, but the state persists far longer than an offline blip.
-**Fix:** Either `retry: 1` on the query, or treat a failed page like an existing empty page (`active ?? []` when `isError`) so the window never widens from an error.
+**File:** `packages/app/src/shell/titlebar/inbox-model.ts:200-211` (with `:134-136, 300`)
+**Issue:** `retry: false` plus no focus refetch means a failed `inbox-sessions` request leaves `active === undefined`, so `indexed` is `undefined` and the merge takes the no-page branch: every known root joins, regardless of `fetchedAt`. That is now the widest state in the function, and `isError` is already read for the settle machine at `:300`. Carried from `01-REVIEW` IN-02.
+**Fix:** Prefer `retry: 1`. Note that treating a failed page as `[]` is not sufficient by itself: with no data, `dataUpdatedAt` is `0`, so the empty-page floor would degrade to "no bound" and fail open — the fix needs the attempt time (for example `errorUpdatedAt`) or the retry.
 
-### IN-03: The new benchmark is missing from the bench inventory
+### IN-04: The all-archived fixture guards a page shape the request cannot produce, and its parity case cannot fail
 
-**File:** `packages/app/perf/session-index.bench.ts:1-14`
-**Issue:** `packages/app/perf/README.md:8-20` lists every `packages/app/perf` bench file and every case; `session-index.bench.ts` appears in neither that table nor the "Other packages keep their benchmarks next to their code" table (`:37-43`). It is also the first *script* case in `packages/app/perf`, which the README currently documents only for core/ui. Nobody running `--check` over the documented set will know it exists.
-**Fix:** Add a row: `session-index.bench.ts` · "merge the session index" · a 50-row index page against a 5,000-session known list.
-
-### IN-04: Impossible-state guard — the floor's survivor predicates never fire for the only bounded caller
-
-**File:** `packages/app/src/runtime/server/session-index.ts:25-33`
-**Category:** necessity
-**Issue:** The reduce skips `info.parentID` rows and, under `includeArchived: false`, archived rows, "so an archived or child row in the page cannot lower it". The only caller that sets `boundedKnown: true` (`inbox-model.ts:201-205`) hands over the page already filtered twice: the request passes `parentID: null` and `archived: false` (`inbox-model.ts:132`; `packages/core/src/session/store.ts:156-161`), and `parseHomeSessionIndex` drops `parentID` and `time.archived` rows again (`home/sessions/index.ts:37-39`). The other two call sites pass arrays with no options (`home/sessions/index.ts:42`, `shell/commands/palette.ts:298`), so no floor is computed. Every skip in this predicate is therefore dead today; the REVIEW WR-01 fix it implements guards a page shape the stack cannot produce.
-**Fix:** Keep it — it is the documented contract of a shared pure helper, and a "windowed" view over the archived page (`archivedQueries` is *not* parsed) would need it. Remove nothing; instead make the comment say it is a contract guarantee ("a caller that passes an unparsed page cannot widen the window") rather than a live path, so the next reader does not treat the mixed-page test at `session-index.test.ts:172-190` as evidence of a reachable state.
-
-### IN-05: The all-archived fixture's comment describes a request that can no longer happen
-
-**File:** `packages/app/src/runtime/server/session-index.test.ts:135-142`
-**Issue:** "Archiving bumps `time.updated`, so the 50 newest rows are all archived and the parsed page is empty: the slots are spent before the archived rows are dropped." That was the pre-fix production state; with `archived: false` on the request the page can no longer contain those rows, so the fixture now guards the defense-in-depth path (a cached page written before the upgrade, or a server that ignores the parameter) rather than the reported bug. The test itself is still valuable — the parsed-empty-page state is reachable via a server with no active roots — but the comment makes it look obsolete.
-**Fix:** Reword to "an empty parsed page, built here from an all-archived page, is the state a server with no active roots returns", and add the CR-01 case beside it so the empty page's post-fetch behaviour is pinned.
+**File:** `packages/app/src/runtime/server/session-index.test.ts:136-143, 169-190`
+**Issue:** The comment at `:136-137` still describes the pre-01-03 world ("Archiving bumps `time.updated`, so the 50 newest rows are all archived … the slots are spent before the archived rows are dropped"). With `archived: false` on the request (`inbox-model.ts:132`) the server never returns those rows, so `expect(page).toEqual([])` is guaranteed by the fixture rather than observed; the reachable empty page is plain `[]`, which `:157-167` already covers. `fetchedAt: 1_001_000` is the fixture's archive timestamp, not a plausible fetch time. The parity case at `:183-190` then compares two key lists that are empty by construction, so it cannot detect the restart divergence it names. Carried from `01-REVIEW` IN-05.
+**Fix:** Reword to "an empty parsed page, built here from an all-archived page, stands in for a server with no active roots", and make the parity case include a post-fetch session (`updated` above `fetchedAt`) in `known`, asserting it appears in both merges.
 
 ---
 
-_Reviewed: 2026-11-12T17:18:30Z_
+_Reviewed: 2026-11-13T11:20:19Z_
 _Reviewer: the agent (gsd-code-reviewer)_
 _Depth: standard_

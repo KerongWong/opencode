@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 7
+open_count: 8
 waived_count: 0
-fixed_count: 0
-total_count: 7
-last_updated: 2026-11-12T08:58:21.209Z
+fixed_count: 1
+total_count: 9
+last_updated: 2026-11-13T12:37:20.340Z
 ---
 
 # Broken Windows Ledger
@@ -22,6 +22,8 @@ last_updated: 2026-11-12T08:58:21.209Z
 | 5 | 01 | unrun-verify | .planning/phases/01-row-source-convergence/01-03-PLAN.md |  | Manual: with the 50 newest root sessions all archived, Projects lists the active projects inside the window and opening an old session adds no row (needs the live app) | open |  | 2026-11-12T08:58:11.879Z |  |
 | 6 | 01 | unrun-verify | .planning/phases/01-row-source-convergence/01-03-PLAN.md |  | Manual: restart the app (user action) and open Projects; the same rows as before, in the all-archived-page state too | open |  | 2026-11-12T08:58:20.542Z |  |
 | 7 | 01 | unrun-verify | .planning/phases/01-row-source-convergence/01-03-PLAN.md |  | Manual: archive a session from Inbox then open its Archived search without leaving the view; the session is still listed | open |  | 2026-11-12T08:58:21.209Z |  |
+| 8 | 02 | unrun-verify | packages/app/src/shell/titlebar/projects.tsx |  | 清单读取失败时的静默降级仍未观察（需端点级故障注入）；「每个可见 projectID 恰好一次请求」与「同一 git 根两份 checkout 各一行」已由 agent 在真实数据上用 CDP 读网络/可访问性树验证（见 02-UAT.md §Agent-Run Evidence） | fixed |  | 2026-11-13T08:25:59.777Z | 2026-11-13T12:37:12.725Z |
+| 9 | 02 | unrun-verify | packages/app/src/shell/titlebar/projects.tsx |  | 首帧→清单到达之间的瞬时抖动未被仪器化（CDP 无帧级采样）；本机数据里没有「会话落在 checkout 子目录」的样本，故 CHK-02/CHK-03 的 partial backstop 只核对了稳定态。全新项目（sandboxes 为空）在清单到达前仍可能先按会话目录成行（02-02 objective 已声明的首帧边界） | open |  | 2026-11-13T12:37:20.340Z |  |
 
 ````json
 [
@@ -113,6 +115,32 @@ last_updated: 2026-11-12T08:58:21.209Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-11-12T08:58:21.209Z",
+    "resolved_at": null,
+    "milestone": "v1.0"
+  },
+  {
+    "id": 8,
+    "kind": "unrun-verify",
+    "phase": "02",
+    "file": "packages/app/src/shell/titlebar/projects.tsx",
+    "line": null,
+    "description": "清单读取失败时的静默降级仍未观察（需端点级故障注入）；「每个可见 projectID 恰好一次请求」与「同一 git 根两份 checkout 各一行」已由 agent 在真实数据上用 CDP 读网络/可访问性树验证（见 02-UAT.md §Agent-Run Evidence）",
+    "status": "fixed",
+    "reason": "",
+    "recorded_at": "2026-11-13T08:25:59.777Z",
+    "resolved_at": "2026-11-13T12:37:12.725Z",
+    "milestone": "v1.0"
+  },
+  {
+    "id": 9,
+    "kind": "unrun-verify",
+    "phase": "02",
+    "file": "packages/app/src/shell/titlebar/projects.tsx",
+    "line": null,
+    "description": "首帧→清单到达之间的瞬时抖动未被仪器化（CDP 无帧级采样）；本机数据里没有「会话落在 checkout 子目录」的样本，故 CHK-02/CHK-03 的 partial backstop 只核对了稳定态。全新项目（sandboxes 为空）在清单到达前仍可能先按会话目录成行（02-02 objective 已声明的首帧边界）",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-11-13T12:37:20.340Z",
     "resolved_at": null,
     "milestone": "v1.0"
   }

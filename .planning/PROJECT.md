@@ -21,10 +21,10 @@
 - ✓ 项目行操作：重命名、在文件管理器中显示、从侧栏移除并在 toast 中恢复
 - ✓ 会话行状态：审批 / 等待输入 / 运行中 / 失败 / 完成，以及相对时间
 - ✓ 未归类会话（`ungrouped`）保留在列表末尾，不会消失
+- ✓ 侧栏行源收敛：没打开过的项目、已归档会话、只在内存里出现过的会话不再生成项目行 — Phase 1（`session-index.ts` 有界窗口 + `archived: false` 请求 + 空页面抓取时间下限）
 
 ### Active
 
-- [ ] 侧栏行源收敛：没打开过的项目、已归档会话、只在内存里出现过的会话不再生成项目行
 - [ ] 同一 git 根的不同本地 checkout 都能成行：进入 Projects 模式时按需加载 worktree 清单，并用项目已有的 `sandboxes` 兜底
 - [ ] 持久化 key 规范化：引入统一的 group key 构造/解析，迁移并裁剪 `projects-sidebar.v1` 的历史与异构 key
 - [ ] 上述行为各有能失败的回归测试（纯函数边界优先）
@@ -66,7 +66,8 @@
 | 做成第四种界面模式，而不是扩展现有三种 | 不动 tab 状态机，冲突面最小 | ✓ Good |
 | 不复用上游 `SidebarOrganized` | 数据源（inbox 索引）与交互（替换整条 tab 栏）不同 | ⚠️ Revisit（上游若成熟可整体替代，冲突面归零） |
 | 分组按本地 checkout 而不是 `projectID` | 同一 git 根的多份拷贝共享 projectID，按 ID 会合并成一行 | ✓ Good |
-| 复用 inbox 索引，不另建数据源 | 避免副本与不一致 | ⚠️ Revisit（`known` 无界合并导致行源不可复现） |
+| 复用 inbox 索引，不另建数据源 | 避免副本与不一致 | ✓ Good（Phase 1 用 `undefined`/数组区分“无页面/有页面”并加有界窗口，行源可复现） |
+| 空页面用抓取时间（`dataUpdatedAt`）而不是 `+∞` 作下限 | 抓取后新建的会话仍能成行，同时不放松窗口 | ✓ Good（Phase 1；远程时钟偏移属已接受风险 T-01-11） |
 | 上游文件只加最小接缝 | 上游 `shell/` 是最热目录 | ⚠️ Revisit（实际接缝已从 8 文件 +61 漂到 12 文件 +76/−19） |
 
 ## Evolution
@@ -87,4 +88,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-11-12 after initialization*
+*Last updated: 2026-11-13 after Phase 1*

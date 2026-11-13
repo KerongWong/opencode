@@ -11,7 +11,7 @@
 
 侧栏从哪些会话推导出项目行。
 
-- [ ] **SRC-01**: 已归档会话不再出现在 Projects 侧栏（按 `time.archived === undefined` 过滤，或在 inbox 构建层过滤）
+- [x] **SRC-01**: 已归档会话不再出现在 Projects 侧栏（按 `time.archived === undefined` 过滤，或在 inbox 构建层过滤）
 - [x] **SRC-02**: 侧栏的行源有单一、有界的窗口——本进程新加载过的会话不会凭空新增项目行，重启前后显示同一组项目
 - [x] **SRC-03**: `mergeRootSessionIndex` 的合并契约有单元测试，至少覆盖「已归档的 known 会话」「只有 known 没有索引」两种情况
 
@@ -19,10 +19,10 @@
 
 同一个 git 根的不同本地目录如何成行。
 
-- [ ] **CHK-01**: 进入 Projects 模式时按需为可见项目加载 worktree 清单（每个 `projectID` 一次、缓存复用、不在渲染中重复 refresh）
-- [ ] **CHK-02**: worktree 清单到达前，`sessionProjectDirectory` 用项目已有的 `sandboxes` 兜底，使分组不再退化为「按会话目录」
-- [ ] **CHK-03**: 同一 git 根的两份本地拷贝各占一行；某一份拷贝没有落在窗口内的会话时，该行仍可见（或显式说明为何不显示）
-- [ ] **CHK-04**: 分组逻辑有回归测试，覆盖「有 inventory」与「只有 canonical + sandboxes」两条路径
+- [x] **CHK-01**: 进入 Projects 模式时按需为可见项目加载 worktree 清单（每个 `projectID` 一次、缓存复用、不在渲染中重复 refresh）
+- [x] **CHK-02**: worktree 清单到达前，`sessionProjectDirectory` 用项目已有的 `sandboxes` 兜底，使分组不再退化为「按会话目录」
+- [x] **CHK-03**: 同一 git 根的两份本地拷贝各占一行；某一份拷贝没有落在窗口内的会话时，该行仍可见（或显式说明为何不显示）
+- [x] **CHK-04**: 分组逻辑有回归测试，覆盖「有 inventory」与「只有 canonical + sandboxes」两条路径
 
 ### 持久化 key (PSK)
 
@@ -66,13 +66,13 @@ Roadmap: `.planning/ROADMAP.md` — milestone v1.0「Projects 侧栏正确性」
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SRC-01 | Phase 1 | Pending |
+| SRC-01 | Phase 1 | Complete |
 | SRC-02 | Phase 1 | Complete |
 | SRC-03 | Phase 1 | Complete |
-| CHK-01 | Phase 2 | Pending |
-| CHK-02 | Phase 2 | Pending |
-| CHK-03 | Phase 2 | Pending |
-| CHK-04 | Phase 2 | Pending |
+| CHK-01 | Phase 2 | Complete |
+| CHK-02 | Phase 2 | Complete |
+| CHK-03 | Phase 2 | Complete |
+| CHK-04 | Phase 2 | Complete |
 | PSK-01 | Phase 3 | Pending |
 | PSK-02 | Phase 3 | Pending |
 | PSK-03 | Phase 3 | Pending |

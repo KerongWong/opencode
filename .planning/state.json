@@ -6,12 +6,12 @@
     {
       "number": "1",
       "name": "行源收敛",
-      "status": "in_progress"
+      "status": "complete"
     },
     {
       "number": "2",
       "name": "每个本地 checkout 成行",
-      "status": "pending"
+      "status": "complete"
     },
     {
       "number": "3",
@@ -21,8 +21,8 @@
   ],
   "next": {
     "command": "/gsd-progress --next",
-    "label": "Advance to the next step (verify)",
-    "reason": "Phase 1 of 3 · ready to verify"
+    "label": "Advance to the next step (plan phase 3)",
+    "reason": "Phase 3 of 3 — needs a plan"
   },
-  "updated_at": "2026-11-12T09:00:41.512Z"
+  "updated_at": "2026-11-13T12:31:53.293Z"
 }
