@@ -19,7 +19,7 @@ import { TitlebarTabStrip } from "@/shell/titlebar/tab-strip"
 import { macVerticalTrafficLights, SidebarToggle } from "@/shell/sidebar-toggle"
 import { SidebarInbox } from "@/shell/titlebar/inbox"
 import { SidebarCustomized, type SidebarStripGrouping } from "@/shell/titlebar/sidebar-customized"
-import { SidebarOrganized } from "@/shell/titlebar/sidebar-organized"
+import { SidebarWorkspaces } from "@/workspace-sidebar"
 import { RecentSessions } from "@/shell/titlebar/recent-sessions"
 import { makeEventListener } from "@solid-primitives/event-listener"
 import { createMediaQuery } from "@solid-primitives/media"
@@ -813,7 +813,7 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                                   <SidebarInbox />
                                 </Match>
                                 <Match when={settings.general.sidebarOrganize() === "projects"}>
-                                  <SidebarOrganized currentTab={currentTab()}>{verticalTabStrip}</SidebarOrganized>
+                                  <SidebarWorkspaces />
                                 </Match>
                                 <Match when={settings.general.sidebarOrganize() === "customize"}>
                                   <SidebarCustomized currentTab={currentTab()} onNewSession={openNewTab}>

@@ -1,0 +1,1 @@
+export { SidebarWorkspaces } from "./sidebar"
