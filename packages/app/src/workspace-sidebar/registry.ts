@@ -79,6 +79,20 @@ export function directoryKey(directory: string, platform: HostPlatform) {
   return platform === "win32" ? normalized.toLowerCase() : normalized
 }
 
+/**
+ * A directory this key cannot own: an empty or whitespace-only value (a cancelled picker coerced to
+ * `""`) or a relative path. `normalizeDirectory` maps `""` to `/`, so the guard reads the raw input
+ * first and then requires an absolute result. Rejection returns the list unchanged rather than
+ * throwing, the same way remove rejects an unregistered directory.
+ */
+function registrable(input: string, platform: HostPlatform) {
+  if (input.trim() === "") return false
+
+  const normalized = normalizeDirectory(input, platform)
+
+  return platform === "win32" ? /^([A-Za-z]:\/|\/\/)/.test(normalized) : normalized.startsWith("/")
+}
+
 /** The last segment of a normalized directory, except for a root, which keeps its own spelling. */
 export function defaultTitle(directory: string) {
   const trimmed = trimTrailingSeparators(directory)
@@ -88,6 +102,8 @@ export function defaultTitle(directory: string) {
 }
 
 export function register(entries: WorkspaceEntry[], input: { directory: string; platform: HostPlatform }) {
+  if (!registrable(input.directory, input.platform)) return { entries, entry: undefined }
+
   const key = directoryKey(input.directory, input.platform)
   const existing = entries.find((entry) => directoryKey(entry.directory, input.platform) === key)
 
@@ -113,6 +129,8 @@ export function register(entries: WorkspaceEntry[], input: { directory: string; 
 
 /** Masks the record instead of deleting it, so re-registering restores its display name and order. */
 export function remove(entries: WorkspaceEntry[], input: { directory: string; platform: HostPlatform }) {
+  if (!registrable(input.directory, input.platform)) return entries
+
   const key = directoryKey(input.directory, input.platform)
   const existing = entries.find((entry) => directoryKey(entry.directory, input.platform) === key)
 

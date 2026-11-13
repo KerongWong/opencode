@@ -65,8 +65,22 @@ describe("register", () => {
 
     const result = register(entries, { directory: "/c", platform: "linux" })
 
-    expect(result.entry.order).toBe(6)
+    expect(result.entry!.order).toBe(6)
     expect(result.entries.map((entry) => entry.order)).toEqual([0, 5, 6])
+  })
+
+  test.each([
+    ["", "linux"],
+    ["  ", "linux"],
+    ["relative/path", "linux"],
+    ["", "win32"],
+  ] as const)("rejects an unregistrable directory %p on %s instead of fabricating a root", (directory, platform) => {
+    const entries: WorkspaceEntry[] = []
+
+    const result = register(entries, { directory, platform })
+
+    expect(result.entries).toBe(entries)
+    expect(result.entry).toBeUndefined()
   })
 })
 
@@ -152,6 +166,15 @@ describe("remove", () => {
     expect(remove(entries, { directory: "/nope", platform: "linux" })).toBe(entries)
   })
 
+  test.each([
+    ["", "linux"],
+    [" ", "linux"],
+  ] as const)("does not mask a record for an unregistrable directory %p on %s", (directory, platform) => {
+    const entries: WorkspaceEntry[] = [{ directory: "/", title: "/", order: 0, createdAt: 1 }]
+
+    expect(remove(entries, { directory, platform })).toBe(entries)
+  })
+
   test("re-registering after removal restores the display name and order", () => {
     const renamed: WorkspaceEntry = { directory: "/project", title: "Renamed", order: 2, createdAt: 10 }
     const removed = remove([renamed], { directory: "/project", platform: "linux" })
@@ -159,9 +182,9 @@ describe("remove", () => {
 
     const result = register(removed, { directory: "/project/", platform: "linux" })
 
-    expect(result.entry.title).toBe("Renamed")
-    expect(result.entry.order).toBe(2)
-    expect(result.entry.removedAt).toBeUndefined()
+    expect(result.entry!.title).toBe("Renamed")
+    expect(result.entry!.order).toBe(2)
+    expect(result.entry!.removedAt).toBeUndefined()
   })
 })
 
