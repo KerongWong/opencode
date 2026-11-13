@@ -6,17 +6,16 @@ current_phase: 2
 current_phase_name: 侧栏渲染与会话投影
 current_plan: 2
 status: verifying
-stopped_at: Phase 1 complete, ready to verify Phase 2
-last_updated: "2026-11-13T16:46:13.342Z"
+stopped_at: Completed 02-01-PLAN.md
+last_updated: "2026-11-13T17:47:27.277Z"
 last_activity: 2026-11-14
 last_activity_desc: Phase 1 complete, transitioned to Phase 2
-state_head: e03ceb465dff4751218a4f95269249b79607f52b
+state_head: 6a573beb000ab401f4b326648f25b90fcbf94f00
 progress:
   total_phases: 3
   completed_phases: 1
-  total_plans: 1
-  completed_plans: 1
-  percent: 33
+  total_plans: 3
+  completed_plans: 2
 ---
 
 # Project State
@@ -64,6 +63,7 @@ Progress: [███░░░░░░░] 33%
 | Plan | Duration | Tasks | Files |
 |------|----------|-------|-------|
 | Phase 01 P1 | 13 | 3 tasks | 2 files |
+| Phase 02 P1 | 22min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -79,6 +79,9 @@ Recent decisions affecting current work:
 - [Phase 01]: 归一后的绝对路径即主键；Windows 盘符根保留 C:/（服务端 isWindowsStoragePath 只认 ^[A-Za-z]:/），比较仅在 win32 下不区分大小写
 - [Phase 01]: 重复登记复用既有记录（含已移除），清 removedAt 并保留 title/order/首次归一拼写；已可见时返回同一个 entries 引用以避免写入
 - [Phase 01]: 移除只写 removedAt，记录不删；新登记 order = 所有既有（含已移除）最大值 + 1；registryTarget 只返回 Persist.serverGlobal(scope, workspace-registry.v1) 目标，persisted() 留给 Phase 2
+- [Phase 02]: Rows come only from visible(entries); per-row session.list is filed under that row's directoryKey, and alias spellings never create a second row
+- [Phase 02]: REG-04 adopts a non-empty server spelling per row only; empty lists fall back to local normalization and older records self-heal on load
+- [Phase 02]: Availability is the filesystem's answer (file.list per ready row on load/reconnect), never inferred from session count; event refreshes skip the probe
 
 ### Pending Todos
 
@@ -103,6 +106,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-11-13T16:24:28.187Z
-Stopped at: Phase 1 complete, ready to verify Phase 2
+Last session: 2026-11-13T17:47:27.240Z
+Stopped at: Completed 02-01-PLAN.md
 Resume file: None

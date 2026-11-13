@@ -61,8 +61,8 @@ v2.0 的 phase 编号从 1 重新开始：本里程碑替换 v1.0 的产品模�
   3. 重命名只改登记表 `title`（`project.name` / `project.icon` 无写入、目录名与会话标题不变），移除只写 `removedAt`（目录与 `.git` 未动），重新登记回到原显示名与原顺序，新登记追加末尾不抢占手排顺序。
   4. 无登记项时只显示「添加本地文件夹」这一个动作，不自动创建默认工作区；目录被删除或改名后该行可见、标记不可用、不可展开，且不自动指向新路径。
   5. 重启后登记列表、显示名、顺序、移除状态全部保持；`session.created` 按 `location.directory` 归行，`archived` / `unarchived` / `deleted` 只带 `sessionID` 时靠 `sessionID → directory` 内存映射做行级刷新，不重扫全局索引；`bun check --no-script` 对本里程碑新增/改动的 app 文件 0 诊断、`bun test src/workspace-sidebar` 全绿（整包 `bun typecheck` 因 `custom-elements.d.ts` 符号链接缺陷单独记录，不计入本 phase 判定）。
-**Plans**: 2 plans
-- [ ] 02-01-PLAN.md — 数据路径：`store.ts` + `sessions.ts` + 纯契约测试
+**Plans**: 1/2 plans executed
+- [x] 02-01-PLAN.md — 数据路径：`store.ts` + `sessions.ts` + 纯契约测试
 - [ ] 02-02-PLAN.md — 渲染：`sidebar.tsx` + `dialogs.tsx` + `index.ts` + i18n 块 + `titlebar.tsx` 两行挂载
 **UI hint**: yes
 
@@ -85,5 +85,5 @@ Phases execute in numeric order: 1 → 2 → 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. 登记表数据模型与纯函数 | 1/1 | Complete    | 2026-11-14 |
-| 2. 侧栏渲染与会话投影 | 0/2 | Not started | - |
+| 2. 侧栏渲染与会话投影 | 1/2 | In Progress | - |
 | 3. 上游触点收敛与打包隔离 | 0/TBD | Not started | - |
