@@ -128,6 +128,7 @@ OpenCode Desktop V2 现有三种界面模式，没有一个以「项目」为组
 1. **与上游 `SidebarOrganized` 并存**：上游 2026-11-04（`2bb49886d7`）已用「vertical + `general.sidebarOrganize=projects`」实现项目分组侧栏（实验设置，默认关）。本分支是同日开始的并行实现，未复用它，因为数据源与交互不同（inbox 索引 vs Home 分页索引；本模式替换整个 tab 栏）。代价：上游对该组件的改进不会自动进入 Projects 模式；本项目模式也没有项目右键菜单、项目内新建会话、归档会话。若上游模式成熟到够用，可以整体放弃本实现，冲突面归零。
 2. **`ActivityRing` 观感**：`packages/ui/src/feedback/activity-ring/activity-ring.css` 把 `color` 写在无 layer 的 `[data-component="activity-ring"]` 规则里，而 Tailwind v4 的 utility 在 `@layer utilities`，无 layer 规则永远胜出，所以调用点的颜色 class 无效。本分支在 3 个调用点用内联样式（16px + `--v2-icon-icon-base`）。根因修法是把该规则放进 layer，但那会同时改变所有调用点的实际观感，无法在当前环境验证，故不做。
 3. **持久化降级**：`tabLayout` 是持久化 union。用纯上游构建读同一个 profile 时，`"projects"` 解码失败会让整个 `settings.v3` 键被删除并回默认值（`runtime/persistence/storage.ts` 的 `readCurrent` → `normalize`）。不崩溃，但会丢设置；fork 内部升级/回退不受影响。
+4. **不显示空 checkout 行**：某份 checkout 在会话窗口内没有任何会话时不生成行（成功标准 4 的「不显示」分支）。行源保持「由会话推导」——`groups()` 只遍历 `inbox.entries()`，worktree inventory 只影响已有会话行归到哪份 checkout，不新增行。理由：空行意味着遍历 projects × checkouts，会重新引入没打开过的项目（相位 1 刚关掉的幽灵项目）和已无活动的 checkout。若要改为「显示」，必须先解决行源这条保证。
 
 ### 实施顺序（三个原子提交）
 
