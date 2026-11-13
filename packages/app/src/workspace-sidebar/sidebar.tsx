@@ -1,6 +1,10 @@
 import { Key } from "@solid-primitives/keyed"
+import { DragDropProvider, PointerSensor } from "@dnd-kit/solid"
+import { isSortable, useSortable } from "@dnd-kit/solid/sortable"
+import { Accessibility, Feedback, PointerActivationConstraints } from "@dnd-kit/dom"
+import { RestrictToVerticalAxis } from "@dnd-kit/abstract/modifiers"
 import type { SessionInfo } from "@opencode/client/promise"
-import { createEffect, createMemo, on, Show } from "solid-js"
+import { createEffect, createMemo, on, onCleanup, onMount, Show } from "solid-js"
 import { createStore } from "solid-js/store"
 import { Button } from "@opencode/ui/button"
 import { useDialog } from "@opencode/ui/context/dialog"
@@ -8,12 +12,13 @@ import { Icon } from "@opencode/ui/icon"
 import { IconButton } from "@opencode/ui/icon-button"
 import { Loader } from "@opencode/ui/loader"
 import { Menu } from "@opencode/ui/menu"
+import { arrayMove } from "@/runtime/array-move"
 import { useLanguage } from "@/runtime/i18n/language"
 import { usePlatform } from "@/runtime/platform/platform"
 import { ServerConnection, useServers } from "@/runtime/server/registry"
 import { useServerCtx } from "@/runtime/server/runtime"
-import { useLayout } from "@/shell/state/layout"
 import { homeProjectDirectories } from "@/shell/layout/helpers"
+import { useLayout } from "@/shell/state/layout"
 import { createProjectSessionActions } from "@/shell/tabs/project-sessions"
 import { useTabs } from "@/shell/tabs/tabs"
 import { ProjectSessionRow } from "@/shell/titlebar/project-session-row"
@@ -87,6 +92,34 @@ function WorkspaceSidebarBody(props: { conn: ServerConnection.Any }) {
 
   const [ui, setUi] = createStore<{ expanded: Record<string, boolean> }>({ expanded: {} })
 
+  let scroller: HTMLDivElement | undefined
+  let restoreFrame = 0
+  let scrollFrame = 0
+
+  // A ref runs before its children render, so the position is restored a frame after mount.
+  onMount(() => {
+    restoreFrame = requestAnimationFrame(() => {
+      if (scroller) scroller.scrollTop = registry.scrollTop()
+    })
+  })
+
+  // Scrolling coalesces to one persisted write per frame, with the final position of that frame.
+  const handleScroll = () => {
+    if (scrollFrame) return
+
+    scrollFrame = requestAnimationFrame(() => {
+      scrollFrame = 0
+
+      if (scroller) registry.setScrollTop(scroller.scrollTop)
+    })
+  }
+
+  onCleanup(() => {
+    if (restoreFrame) cancelAnimationFrame(restoreFrame)
+
+    if (scrollFrame) cancelAnimationFrame(scrollFrame)
+  })
+
   // `on` tracks the row list only: `load` reads and writes the session store, so a bare effect would retrigger itself.
   createEffect(on(rows, () => sessions.load()))
 
@@ -143,7 +176,13 @@ function WorkspaceSidebarBody(props: { conn: ServerConnection.Any }) {
 
   return (
     <div data-slot="workspace-sidebar" class="flex min-h-0 flex-1 flex-col [app-region:no-drag]">
-      <div data-slot="workspace-list" data-scrollable class="min-h-0 flex-1 overflow-y-auto">
+      <div
+        data-slot="workspace-list"
+        data-scrollable
+        class="min-h-0 flex-1 overflow-y-auto"
+        ref={(element) => (scroller = element)}
+        onScroll={handleScroll}
+      >
         <Show
           when={rows().length > 0}
           fallback={
@@ -160,31 +199,61 @@ function WorkspaceSidebarBody(props: { conn: ServerConnection.Any }) {
             </div>
           }
         >
-          <div class="flex flex-col gap-1">
-            <Key each={rows()} by={(entry) => directoryKey(entry.directory, host)}>
-              {(entry) => {
-                const key = () => directoryKey(entry().directory, host)
+          <DragDropProvider
+            sensors={[
+              PointerSensor.configure({
+                activationConstraints: [new PointerActivationConstraints.Distance({ value: 4 })],
+                preventActivation: (event) =>
+                  event.target instanceof Element && !!event.target.closest("[data-workspace-action]"),
+              }),
+            ]}
+            modifiers={[RestrictToVerticalAxis]}
+            plugins={(defaults) => [
+              ...defaults.filter((plugin) => plugin !== Accessibility),
+              Feedback.configure({ dropAnimation: null }),
+            ]}
+            onDragEnd={(event) => {
+              const source = event.operation.source
 
-                return (
-                  <WorkspaceRow
-                    server={serverKey}
-                    entry={entry()}
-                    expanded={expanded(key())}
-                    unavailable={unavailable(key())}
-                    onToggle={() => toggle(key())}
-                    onRename={() => rename(entry())}
-                    onRemove={() => remove(entry())}
-                    row={sessionsOf(sessions.rows(), key())}
-                    isOpenTab={isOpenTab}
-                    isActive={isActive}
-                    onOpen={(session) =>
-                      actions.openProjectSession(props.conn, session.location.directory, session, { preview: true })
-                    }
-                  />
-                )
-              }}
-            </Key>
-          </div>
+              if (event.canceled || !isSortable(source) || source.initialIndex === source.index) return
+
+              registry.reorder(
+                arrayMove(
+                  rows().map((entry) => entry.directory),
+                  source.initialIndex,
+                  source.index,
+                ),
+              )
+            }}
+          >
+            <div class="flex flex-col gap-1">
+              <Key each={rows()} by={(entry) => directoryKey(entry.directory, host)}>
+                {(entry, index) => {
+                  const key = () => directoryKey(entry().directory, host)
+
+                  return (
+                    <WorkspaceRow
+                      server={serverKey}
+                      sortKey={key()}
+                      index={index()}
+                      entry={entry()}
+                      expanded={expanded(key())}
+                      unavailable={unavailable(key())}
+                      onToggle={() => toggle(key())}
+                      onRename={() => rename(entry())}
+                      onRemove={() => remove(entry())}
+                      row={sessionsOf(sessions.rows(), key())}
+                      isOpenTab={isOpenTab}
+                      isActive={isActive}
+                      onOpen={(session) =>
+                        actions.openProjectSession(props.conn, session.location.directory, session, { preview: true })
+                      }
+                    />
+                  )
+                }}
+              </Key>
+            </div>
+          </DragDropProvider>
         </Show>
       </div>
       <Show when={rows().length > 0}>
@@ -200,6 +269,8 @@ function WorkspaceSidebarBody(props: { conn: ServerConnection.Any }) {
 
 function WorkspaceRow(props: {
   server: ServerConnection.Key
+  sortKey: string
+  index: number
   entry: WorkspaceEntry
   expanded: boolean
   /** The directory probe failed: the row stays, marked, and cannot expand. */
@@ -219,8 +290,17 @@ function WorkspaceRow(props: {
 
   const openMenu = () => setMenu("open", true)
 
+  const sortable = useSortable({
+    get id() {
+      return props.sortKey
+    },
+    get index() {
+      return props.index
+    },
+  })
+
   return (
-    <div class="relative shrink-0">
+    <div ref={sortable.ref} class="relative shrink-0">
       <div
         class="group/workspace relative flex h-7 min-w-0 shrink-0 items-center rounded-[6px] pe-1 hover:bg-v2-overlay-simple-overlay-hover has-[:focus-visible]:bg-v2-overlay-simple-overlay-hover"
         onContextMenu={(event) => {
