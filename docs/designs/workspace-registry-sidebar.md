@@ -248,6 +248,22 @@ Phase 1 的「50 行有界索引」与 Phase 2 的「每 checkout 一行」在**
 
 ---
 
+### 7.5 修订（2026-11-14，实现前核对）
+
+本节的假设在切到 `upstream/dev` 后被实际代码更正：**上游已经有 `general.sidebarOrganize === "projects"` 这个模式**（`packages/app/src/settings/model.tsx`、`packages/app/src/shell/titlebar/sidebar-organized.tsx`、`shell.tsx` 的 `organizedSidebar()`），v1.0 的「Projects 侧栏」本来就是挂在它上面的。
+
+因此 §7.2 的触点数比预算更小：
+
+| 方案 | 上游文件数 | 上游新增行 | 说明 |
+|---|---|---|---|
+| (a) 自包含模块（**采纳**） | **2** | **≈4** | `titlebar.tsx`（1 import + 1 行 `SidebarWorkspaces`，替换上游 `SidebarOrganized`）+ `en.ts`（1 个连续键块） |
+| — `settings/model.tsx` | 0 | 0 | 不需要：`sidebarOrganize` 的 `"projects"` 字面量上游已有 |
+| — `shell/shell.tsx` | 0 | 0 | 不需要：`organizedSidebar()` 已覆盖该模式 |
+
+§9.7 的结论不变（沿用既有模式 token、只换显示名），但 token 是 `general.sidebarOrganize = "projects"`，不是 `appearance.tabLayout`。
+
+---
+
 ## 8. 实施计划（按文件）
 
 新增目录 `packages/app/src/workspace-sidebar/`：
