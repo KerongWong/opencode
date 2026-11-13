@@ -194,14 +194,20 @@ export function createSessionInbox(options: { archived?: boolean } = {}) {
 
         // Locally known sessions come last so live archive and unarchive events win over cached indexes.
         // A fetched page always bounds the Projects view; `undefined` means no page has been fetched yet, so the known
-        // roots are the list (first paint and offline). The Inbox view keeps known rows for its archived section.
+        // roots are the list (first paint and offline). When the page has no surviving root, the query's fetch time
+        // bounds the window, so work done after the fetch still joins. The Inbox view keeps known rows for its archived
+        // section.
         const active = queries[index]?.data?.()
         const archived = options.archived ? archivedQueries[index]?.data?.() : undefined
 
         const sessions = mergeRootSessionIndex(
           active === undefined && archived === undefined ? undefined : [...(active ?? []), ...(archived ?? [])],
           data.session.known(),
-          { includeArchived: options.archived === true, boundedKnown: options.archived !== true },
+          {
+            includeArchived: options.archived === true,
+            boundedKnown: options.archived !== true,
+            fetchedAt: queries[index]?.dataUpdatedAt,
+          },
         )
 
         return data.session

@@ -5,6 +5,11 @@ export type RootSessionIndexOptions = {
   includeArchived?: boolean
   /** Bounds the locally known sessions merged into the index to the index window. */
   boundedKnown?: boolean
+  /**
+   * When the fetched page has no surviving root, the time the page was fetched bounds the known rows, so work done after
+   * the fetch still joins (the Projects view passes the query's update time).
+   */
+  fetchedAt?: number
 }
 
 /**
@@ -15,14 +20,16 @@ export type RootSessionIndexOptions = {
  *
  * `boundedKnown` makes the index page the row source: a known root joins only when it is indexed already or its
  * `time.updated` is at least the oldest indexed row's, so opening old history cannot add a row. The floor is reduced
- * over the rows the final filter can keep, so an archived or child row in the page cannot lower it.
+ * over the rows the final filter can keep, so an archived or child row in the page cannot lower it. A page with no
+ * surviving root is bounded by its fetch time instead of an infinite floor; without a fetch time no time bound applies,
+ * so a session created after the fetch still joins.
  */
 export function mergeRootSessionIndex(
   indexed: readonly SessionInfo[] | undefined,
   known: readonly SessionInfo[],
   options: RootSessionIndexOptions = {},
 ) {
-  const floor =
+  const survivors =
     options.boundedKnown && indexed !== undefined
       ? indexed.reduce(
           (min, info) =>
@@ -32,6 +39,10 @@ export function mergeRootSessionIndex(
           Number.POSITIVE_INFINITY,
         )
       : undefined
+
+  // A non-empty page keeps its survivor floor; an empty one is bounded by when it was fetched.
+  const floor = survivors === undefined ? undefined : Number.isFinite(survivors) ? survivors : options.fetchedAt
+
   const rows = new Map((indexed ?? []).map((info) => [info.id, info]))
 
   for (const info of known) {
