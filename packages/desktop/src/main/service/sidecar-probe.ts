@@ -3,6 +3,7 @@ import path from "node:path"
 import { app } from "electron"
 import type { Endpoint } from "@opencode/client/service"
 import { CHANNEL } from "../constants"
+import { registrationFile } from "./registration-file"
 
 // The main thread idles between showing the first window and evaluating the main bundle, waiting
 // for the renderer's asset requests. That slot is long enough to find out whether a compatible
@@ -16,7 +17,9 @@ export function startSidecarProbe() {
   const version = CHANNEL === "beta" ? undefined : bundledVersion()
 
   if (version === "") return
-  probe = import("@opencode/client/service").then(({ Service }) => Service.discover({ version })).catch(() => undefined)
+  probe = import("@opencode/client/service").then(({ Service }) =>
+    Service.discover({ version, file: probeFile() }),
+  ).catch(() => undefined)
 }
 
 /** The probe's result, once: a later connect must not adopt a service that may have exited since boot. */
@@ -33,4 +36,13 @@ function bundledVersion() {
   } catch {
     return ""
   }
+}
+
+// Same registration file ensure() probes; discovering a different one could adopt a stranger's
+// service that happens to share the default service.json.
+function probeFile() {
+  const state = process.env.XDG_STATE_HOME ?? path.join(app.getPath("home"), ".local", "state")
+  const channel = process.env.OPENCODE_DESKTOP_SERVER_CHANNEL === "local" ? "local" : CHANNEL
+
+  return path.join(state, "opencode", registrationFile(channel))
 }
