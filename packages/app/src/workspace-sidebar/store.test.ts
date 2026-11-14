@@ -78,8 +78,16 @@ describe("adoptEntryDirectory", () => {
   test("takes the server spelling of the same row and keeps title, order, createdAt and removedAt", () => {
     const app = entry("D:/code/app", 3, { title: "My app", createdAt: 500 })
 
-    expect(adoptEntryDirectory([app], "D:/code/app", "d:/code/app", "win32")).toEqual([
-      { ...app, directory: "d:/code/app" },
+    expect(adoptEntryDirectory([app], "D:/code/app", "D:/CODE/app", "win32")).toEqual([
+      { ...app, directory: "D:/CODE/app" },
+    ])
+  })
+
+  test("normalizes the adopted spelling instead of storing the server's separators", () => {
+    const app = entry("D:/code/app", 0)
+
+    expect(adoptEntryDirectory([app], "D:/code/app", "D:\\CODE\\app\\", "win32")).toEqual([
+      { ...app, directory: "D:/CODE/app" },
     ])
   })
 
@@ -94,6 +102,6 @@ describe("adoptEntryDirectory", () => {
   test("writes nothing when the spelling already matches", () => {
     const entries = [entry("D:/code/app", 0)]
 
-    expect(adoptEntryDirectory(entries, "D:/code/app", "D:/code/app", "win32")).toBe(entries)
+    expect(adoptEntryDirectory(entries, "D:/code/app", "d:/code/app", "win32")).toBe(entries)
   })
 })

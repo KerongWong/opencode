@@ -3,6 +3,7 @@ import type { ServerScope } from "@/runtime/server/scope"
 import {
   directoryKey,
   initialRegistry,
+  normalizeDirectory,
   register,
   registryTarget,
   remove,
@@ -60,14 +61,18 @@ export function adoptEntryDirectory(
   platform: HostPlatform,
 ) {
   const key = directoryKey(directory, platform)
+  // The server answers with whatever its filesystem layer produced — on Windows that can be a
+  // backslash spelling. Adopting it raw would leave the registry with two shapes of key and make
+  // `defaultTitle` treat the whole path as one segment.
+  const spelling = normalizeDirectory(serverDirectory, platform)
 
-  if (directoryKey(serverDirectory, platform) !== key) return entries
+  if (directoryKey(spelling, platform) !== key) return entries
 
   const target = entries.find((entry) => directoryKey(entry.directory, platform) === key)
 
-  if (!target || target.directory === serverDirectory) return entries
+  if (!target || target.directory === spelling) return entries
 
-  return entries.map((entry) => (entry === target ? { ...entry, directory: serverDirectory } : entry))
+  return entries.map((entry) => (entry === target ? { ...entry, directory: spelling } : entry))
 }
 
 /**
