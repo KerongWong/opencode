@@ -32,9 +32,30 @@ status: complete
 ## 验证
 
 - `cd packages/desktop && bunx tsc --noEmit -p tsconfig.json` → **0 诊断**
-- `OPENCODE_CHANNEL=fork bun --cwd packages/desktop build` → **成功**（`✓ built in 16.75s`，产出 `out/main`、`out/preload`、`out/renderer`）
-- 产物内已烘焙 fork 身份：`out/main/index.js` 中 `ai.opencode.desktop.fork` 与 `OpenCode Fork` 各出现 1 次
+- `bun script/lint-changed.ts upstream/dev` → **0 problem / 16 files**
+- `OPENCODE_CHANNEL=fork bun --cwd packages/desktop build` → 成功
+- `OPENCODE_CHANNEL=fork bun --cwd packages/desktop pack` → 成功，产出 `dist/win-unpacked/OpenCode Fork.exe`
+- `dist/win-unpacked/resources/app-update.yml` **不存在**（fork 故意没有更新源）
 - `git diff --numstat upstream/dev -- packages` → `packages/app` 仍只有 2 个上游文件、净 13 行
+
+## 验证器回归（2026-11-14，gaps_found → 逐条修复）
+
+独立验证器判定 `gaps_found`（2/4），抓到我第一版实现里的四处真问题。它们不是措辞问题，是功能不生效：
+
+| # | 断点 | 修复 |
+|---|---|---|
+| 1 | `packages/desktop/electron.vite.config.ts` 有**自己**的 `resolveChannel()`，不认识 `fork` → 构建时 `CHANNEL` 回落 `dev`，产物里的 `APP_NAME/APP_ID` 折叠成 dev | 该 `resolveChannel()` 加 `fork` |
+| 2 | `electron-builder.config.ts` 的 `getConfig()` 没有 `fork` 分支 → 返回 `undefined` → schema 校验报 `unknown property '__esModule'/'getConfig'` | 加 `case "fork"`（`OpenCode Fork`，**无 publish**） |
+| 3 | `script/pack.ts` 无条件读 `getConfig().publish` → fork 没有 publish 时崩 | `publish` 缺失时跳过写 `app-update.yml` |
+| 4 | `appNames`/`appIDs` 用开放字典类型 → `anti-slop(no-known-value-widening)` 两条 | 改 `satisfies Record<string, string>` 并补 `local` 键 |
+
+**第一版 SUMMARY 曾写「产物已烘焙 fork 身份」，那是错的**：`out/main/index.js` 里出现 `ai.opencode.desktop.fork` 只说明表项在包里，不代表被使用；`electron.vite.config.ts` 的 `resolveChannel()` 才是决定 `CHANNEL` 的地方。上面的修复之后 `dist/win-unpacked/OpenCode Fork.exe` 才真正带上 fork 身份。
+
+## 仍未完成
+
+- **捆绑 CLI 是 dev 渠道构建**（自报 `0.0.0-dev-202611120134`）。桌面端在服务注册时传的是 `channel: "fork"`，因此 `service-fork.json` / 独立端口 / `opencode-fork.db` 来自桌面侧的参数；但 CLI 自身编译期烘焙的 channel 仍是 `dev`。要彻底消除「顶替官方后台」的可能，需要用 `OPENCODE_CHANNEL=fork` 重新构建 `packages/cli` 的二进制。这一步没有做。
+- **NSIS 安装包未产出**：本轮只到 `dist/win-unpacked`。生成安装包要把该目录复制到仓库外、设 `OPENCODE_DESKTOP_APP` 再跑一次 `pack`。
+- `resources/opencode-cli.version` 与二进制自报版本的一致性：已把 `packages/cli/dist/.../package.json` 改回二进制自报的 `0.0.0-dev-202611120134`（此前被我误写成 `2.2.7`，会让后台服务反复重启）。
 
 ## 偏差与如实记录
 

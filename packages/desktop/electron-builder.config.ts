@@ -272,6 +272,17 @@ export function getConfig() {
         rpm: { packageName: "opencode", fpm: [rpmNoBuildIdLinksFpm, metainfoFpm(appId), legacyDesktopEntryFpm] },
       }
     }
+
+    // The personal fork ships its own identity and deliberately has no update feed: it is not published,
+    // and pointing it at upstream's channel would hand an official build to a fork install.
+    case "fork": {
+      return {
+        ...base,
+        appId,
+        productName: "OpenCode Fork",
+        protocols: { name: "OpenCode Fork", schemes: ["opencode-fork"] },
+      }
+    }
   }
 }
 

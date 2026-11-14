@@ -3,57 +3,75 @@ status: complete
 phase: 03-上游触点收敛与打包隔离
 source: [03-SUMMARY.md]
 started: 2026-11-14T03:20:00.000Z
-updated: 2026-11-14T03:35:00.000Z
+updated: 2026-11-14T04:10:00.000Z
 ---
 
 ## Agent-Run Evidence
 
-本阶段的可观察行为全部是「构建与身份」，由命令直接判定，不需要人工点击。
+本阶段的可观察行为全部是「构建与身份」，由命令直接判定。第一版实现被独立验证器判为 `gaps_found`（2/4），四处断点已修复后重跑；下表是修复后的读数。
 
 ## Tests
 
 ### 1. 上游触点在上限内
-expected: `packages/app` 的上游文件只有 `en.ts` 与 `titlebar.tsx`，其余全是新目录；`packages/server|protocol|core` 零改动。
+expected: `packages/app` 的上游文件只有 `en.ts` 与 `titlebar.tsx`（无缩进重排块）；`packages/server|protocol|core` 零改动。
 result: pass
 requirement: SYNC-01
 evidence: `git diff --numstat upstream/dev -- packages` → `en.ts +13/−0`、`titlebar.tsx +2/−2`、`workspace-sidebar/*` 7 个新文件；`server/protocol/core` 无条目。
 
-### 2. v1.0 的会话派生行源不存在于本分支
-expected: `inbox-model.ts` / `session-index.ts` / `projects-*` 不出现。
+### 2. v1.0 的会话派生行源在本分支无 fork 侧改动
+expected: `inbox-model.ts` / `session-index.ts` / `projects-*` / `perf/session-index*` 对上游零差异。
 result: pass
 requirement: SYNC-02
-evidence: 同上 diff 清单中没有这些路径；本分支从 `upstream/dev` 切出，它们从未被引入。
+evidence: 上述路径不在 `git diff --name-only upstream/dev` 里。**措辞更正**：它们并非「从未存在」，而是「本分支对它们零改动」——验证器指出了这个区别。
 
-### 3. fork 渠道可构建
-expected: `OPENCODE_CHANNEL=fork bun --cwd packages/desktop build` 成功，产物带 fork 身份。
+### 3. fork 渠道可以构建
+expected: `OPENCODE_CHANNEL=fork bun --cwd packages/desktop build` 成功。
 result: pass
 requirement: SYNC-03
-evidence: `✓ built in 16.75s`；`out/main/index.js` 中 `ai.opencode.desktop.fork`、`OpenCode Fork` 各 1 次；`out/{main,preload,renderer}` 均生成。
+evidence: build 成功，`out/{main,preload,renderer}` 齐全。
 
-### 4. 四条隔离的取值成立
+### 4. fork 渠道身份真的生效
+expected: 打包产物的可执行文件名、productName、appId 都是 fork。
+result: pass
+requirement: SYNC-03
+evidence: `dist/win-unpacked/OpenCode Fork.exe` 存在；`dist/win-unpacked/resources/app-update.yml` 不存在（fork 无更新源，`pack.ts` 已加守卫）。**第一版此条为 fail**：`electron.vite.config.ts` 自己的 `resolveChannel()` 不认识 `fork`，`CHANNEL` 折叠成 `dev`；修复后重打包才成立。
+
+### 5. 四条隔离的取值成立
 expected: appId / productName / service 文件 / 端口 / 数据库 与官方不同。
 result: pass
 requirement: SYNC-03
-evidence: 源码推导：`service-config.filename("fork")` → `service-fork.json`（只有 latest/dev/beta/next 才共享 `service.json`）；`defaultPort("fork")` → `10000 + hash%50000`（dev 固定 `0xC0DE`）；`database-path` → `opencode-fork.db`；`APP_IDS.fork` / `appNames.fork` 为本阶段新增。
+evidence: `APP_IDS.fork` / `appNames.fork` 已登记；桌面端在服务注册时传 `channel: "fork"`，因此 `service-config.filename("fork")` → `service-fork.json`、`defaultPort` → `10000 + hash%50000`、`database-path` → `opencode-fork.db`。**限制**：捆绑的 CLI 二进制仍是 dev 渠道构建（见 Test 7）。
 
-### 5. 免安装目录
-expected: `pack` 产出 `dist/desktop/app`。
+### 6. `pack` 能出免安装目录
+expected: `pack` 产出 `dist/win-unpacked`。
 result: pass
 requirement: SYNC-03
-evidence: `packages/desktop/dist/win-unpacked` 存在。
+evidence: `pack` 走完 `@electron/rebuild` → `packaging` → `signing`，无 error；`dist/win-unpacked` 内有 `OpenCode Fork.exe`。
 
-### 6. NSIS 安装包
+### 7. 捆绑 CLI 的渠道与版本一致
+expected: `resources/opencode-cli.version` 与捆绑二进制自报版本相同，且渠道为 fork。
+result: fail
+requirement: SYNC-03
+blocked_by: other
+evidence: 捆绑二进制自报 `opencode v0.0.0-dev-202611120134`（dev 渠道构建）。本轮已把 `packages/cli/dist/cli-windows-x64-baseline/package.json` 改回该版本，使 `resources/opencode-cli.version` 与之一致（此前被我误写成 `2.2.7`，会让后台服务反复 replace 到超时）；但**要让 CLI 自身也是 fork 渠道，必须用 `OPENCODE_CHANNEL=fork` 重新构建 CLI 二进制**，本轮未做。
+reason: CLI 的 channel 在编译期烘焙进二进制，没有运行期覆盖入口；重构建 CLI（SEA/compile 步骤）不在本轮预算内。
+
+### 8. NSIS 安装包
 expected: 产出可双击安装的 exe。
 result: skipped
-reason: 需要先 `build` → 把 `dist/desktop/app` 复制到仓库外 → 再跑一次 `pack`（`docs/designs/build-desktop.md` 第 3 步），且要等 electron 工具链完整下载。本轮只做到免安装目录；`dist/opencode-desktop-win-x64.exe` 存在但是**上一次会话的产物**（时间戳早于本轮改动），不能作为本次交付证据。
+reason: 需要把 `dist/desktop/app` 复制到仓库外、设 `OPENCODE_DESKTOP_APP` 再跑一次 `pack`（`docs/designs/build-desktop.md` 第 3 步）。本轮止于免安装目录。
 
 ## Summary
 
-total: 6
+total: 8
 passed: 5
 issues: 0
 pending: 0
 skipped: 1
-blocked: 0
+blocked: 1
+fail: 1
 
 ## Gaps
+
+- **GAP-03-01（SYNC-03）**：捆绑 CLI 是 dev 渠道构建。要让「与官方共存、后台互不顶替」在 CLI 侧也成立，需 `OPENCODE_CHANNEL=fork` 重建 `packages/cli` 二进制，并让 `resources/opencode-cli.version` 跟随它。
+- **GAP-03-02**：NSIS 安装包未产出（免安装目录已可用）。

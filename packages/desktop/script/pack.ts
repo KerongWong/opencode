@@ -66,6 +66,11 @@ if (!app && os === "win") {
 // electron-updater reads its feed from that file, so write the one those targets would.
 async function writeUpdateConfig(resources: string) {
   const publish = getConfig().publish
+
+  // The personal fork has no update feed on purpose: writing an `app-update.yml` would make the
+  // packaged app poll a provider it was never given, so leave the file out entirely.
+  if (!publish) return
+
   const name: string = (await Bun.file("package.json").json()).name
   await Bun.write(
     path.join(resources, "app-update.yml"),
