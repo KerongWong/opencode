@@ -118,6 +118,24 @@ async function copyCliToResources(pkg: string, dest: string) {
 
   if (!manifest) throw new Error(`Bundled CLI package has no version: ${pkg}`)
   await Bun.write(versionFile(dest), manifest.version)
+  await assertMatchesReportedVersion(dest, manifest.version)
+}
+
+// The packaged desktop trusts opencode-cli.version exactly and never asks the binary again; a
+// mismatch makes it kill-loop the background service until "Timed out waiting for the background
+// service to start". One spawn here keeps a mis-staged CLI (e.g. a copied binary whose
+// package.json was hand-written) from ever reaching an installer.
+async function assertMatchesReportedVersion(dest: string, expected: string) {
+  const { $ } = await import("bun")
+  const output = (await $`${dest} --version`.quiet().nothrow()).stdout.toString().trim()
+  const marker = output.lastIndexOf(" v")
+  const actual = marker === -1 ? output : output.slice(marker + 2)
+
+  if (actual !== expected)
+    throw new Error(
+      `Bundled CLI reports ${actual || "<no version>"} but its package.json says ${expected}. ` +
+        "The desktop trusts opencode-cli.version without asking the binary; fix the staged CLI instead.",
+    )
 }
 
 export function versionFile(cli: string) {
