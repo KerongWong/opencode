@@ -48,13 +48,19 @@ result: pass
 requirement: SYNC-03
 evidence: `pack` 走完 `@electron/rebuild` → `packaging` → `signing`，无 error；`dist/win-unpacked` 内有 `OpenCode Fork.exe`。
 
-### 7. 捆绑 CLI 的渠道与版本一致
-expected: `resources/opencode-cli.version` 与捆绑二进制自报版本相同，且渠道为 fork。
+### 7. 版本一致性
+expected: `resources/opencode-cli.version` 与捆绑二进制自报版本相同。
+result: pass
+requirement: SYNC-03
+evidence: 捆绑二进制自报 `opencode v0.0.0-dev-202611120134`；`bun --cwd packages/desktop build` 后 `resources/opencode-cli.version` 与 `dist/win-unpacked/resources/opencode-cli.version` 均为 `0.0.0-dev-202611120134`。此前我曾把它误写成 `2.2.7`，那会让后台服务反复 replace 到超时。
+
+### 9. 捆绑 CLI 的渠道
+expected: 捆绑的 `opencode-cli.exe` 本身以 `OPENCODE_CHANNEL=fork` 构建。
 result: fail
 requirement: SYNC-03
 blocked_by: other
-evidence: 捆绑二进制自报 `opencode v0.0.0-dev-202611120134`（dev 渠道构建）。本轮已把 `packages/cli/dist/cli-windows-x64-baseline/package.json` 改回该版本，使 `resources/opencode-cli.version` 与之一致（此前被我误写成 `2.2.7`，会让后台服务反复 replace 到超时）；但**要让 CLI 自身也是 fork 渠道，必须用 `OPENCODE_CHANNEL=fork` 重新构建 CLI 二进制**，本轮未做。
-reason: CLI 的 channel 在编译期烘焙进二进制，没有运行期覆盖入口；重构建 CLI（SEA/compile 步骤）不在本轮预算内。
+evidence: 二进制自报 `0.0.0-dev-202611120134`，即 dev 渠道构建。桌面端在服务注册时传的是 `channel: "fork"`，所以 `service-fork.json` / 独立端口 / `opencode-fork.db` 这些**由桌面侧参数决定**的部分已经隔离；但 CLI 编译期烘焙的 channel 仍是 `dev`。
+reason: CLI 的 channel 在编译期烘焙进二进制，没有运行期覆盖入口；重建 CLI（`packages/cli` 的二进制构建）不在本轮预算内。
 
 ### 8. NSIS 安装包
 expected: 产出可双击安装的 exe。
@@ -63,13 +69,13 @@ reason: 需要把 `dist/desktop/app` 复制到仓库外、设 `OPENCODE_DESKTOP_
 
 ## Summary
 
-total: 8
-passed: 5
-issues: 0
+total: 9
+passed: 6
+issues: 1
 pending: 0
 skipped: 1
-blocked: 1
-fail: 1
+blocked: 0
+failed: 1
 
 ## Gaps
 
