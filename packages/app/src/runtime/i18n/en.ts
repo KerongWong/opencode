@@ -969,6 +969,7 @@ export const dict = {
   "settings.general.row.interfaceMode.top": "Top tabs",
   "settings.general.row.interfaceMode.side": "Side tabs",
   "settings.general.row.interfaceMode.inbox": "Inbox",
+"settings.general.row.interfaceMode.projects": "Projects",
   "settings.appearance.row.zoom.title": "Zoom",
   "settings.appearance.row.zoom.description": "Make text and controls larger across the app",
   "settings.appearance.row.reduceMotion.title": "Reduce motion",

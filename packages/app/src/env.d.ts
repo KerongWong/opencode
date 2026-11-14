@@ -2,7 +2,7 @@ interface ImportMetaEnv {
   readonly VITE_OPENCODE_SERVER_MODE?: "none" | "origin"
   readonly VITE_OPENCODE_SERVER_HOST: string
   readonly VITE_OPENCODE_SERVER_PORT: string
-  readonly VITE_OPENCODE_CHANNEL?: "local" | "dev" | "beta" | "prod"
+  readonly VITE_OPENCODE_CHANNEL?: "local" | "dev" | "beta" | "prod" | "projects"
   /** The release of the CLI whose server embeds this build. Absent in the hosted web app. */
   readonly VITE_OPENCODE_VERSION?: string
 

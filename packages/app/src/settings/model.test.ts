@@ -129,6 +129,11 @@ describe("settings schema", () => {
     })
   })
 
+  test.each(["horizontal", "vertical", "inbox", "projects"])("round trips the interface layout %s", (layout) => {
+    const settings = decode({ appearance: { tabLayout: layout } })
+    expect(decode(encode(settings)).appearance.tabLayout).toBe(layout)
+  })
+
   test.each(["list", "projects", "customize", "recent"])("round trips saved side-tab organization %s", (mode) => {
     const settings = decode({ general: { sidebarOrganize: mode } })
     expect(decode(encode(settings)).general.sidebarOrganize).toBe(mode)

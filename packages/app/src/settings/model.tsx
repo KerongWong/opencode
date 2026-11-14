@@ -149,7 +149,8 @@ const appearanceSchema = Persistence.struct({
   sans: Schema.String,
   terminal: Schema.String,
   // "inbox" is experimental: the vertical layout with a server-wide session inbox in place of tabs.
-  tabLayout: Schema.Literals(["horizontal", "vertical", "inbox"]),
+  // "projects" renders the workspace registry sidebar in place of tabs; the "projects" channel build defaults to it.
+  tabLayout: Schema.Literals(["horizontal", "vertical", "inbox", "projects"]),
   sidebarOpen: Persistence.optional(Schema.Boolean),
   reduceMotion: Schema.Literals(["system", "on", "off"]),
 })
@@ -300,6 +301,9 @@ export const settingsPersistence = Persistence.migrate(
   ),
 )
 
+// The "projects" channel build lands on the workspace sidebar; other channels keep "horizontal".
+const defaultTabLayout: TabLayout = import.meta.env.VITE_OPENCODE_CHANNEL === "projects" ? "projects" : "horizontal"
+
 export const defaultSettings: Settings = {
   general: {
     timelineDetail: { ...timelinePresets[2].value },
@@ -314,7 +318,7 @@ export const defaultSettings: Settings = {
     mobileTitlebarPosition: "top",
     followUpBehavior: "steer",
   },
-  appearance: { fontSize: 14, mono: "", sans: "", terminal: "", tabLayout: "horizontal", reduceMotion: "system" },
+  appearance: { fontSize: 14, mono: "", sans: "", terminal: "", tabLayout: defaultTabLayout, reduceMotion: "system" },
   keybinds: {},
   permissions: { autoApprove: false, autoApproveProjects: {} },
   workspaces: { defaultDestination: "last-used", lastUsed: {} },

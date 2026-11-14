@@ -8,6 +8,7 @@ const modes = [
   { id: "top", layout: "horizontal" },
   { id: "side", layout: "vertical" },
   { id: "inbox", layout: "inbox" },
+  { id: "projects", layout: "projects" },
 ] as const satisfies { id: string; layout: TabLayout }[]
 
 export function InterfaceModeSetting() {
@@ -60,6 +61,13 @@ export function InterfaceModeSetting() {
                             <i data-status={status} />
                           </span>
                         )}
+                      </For>
+                    </span>
+                  </Match>
+                  <Match when={mode.id === "projects"}>
+                    <span data-slot="preview-rail">
+                      <For each={[0, 1, 2]}>
+                        {(index) => <span data-slot="preview-tab" data-active={index === 0 ? "" : undefined} />}
                       </For>
                     </span>
                   </Match>
