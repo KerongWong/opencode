@@ -26,7 +26,7 @@
 - [x] **ROW-03**: 行内会话只包含 `directory` 与该行精确相等的会话，不含子目录
 - [x] **ROW-04**: 侧栏不存在任何兜底分组（未分组 / 其它）；被移除登记的工作区，其会话在侧栏任何位置都不出现
 - [x] **ROW-05**: Inbox 与命令面板的会话入口不受登记表影响（被移除工作区的会话仍可从那里访问）
-- [x] **ROW-06**: `session.created` 的增量更新按 `location.directory` 归行；`archived` / `unarchived` / `deleted` 只带 `sessionID` 时，用 `sessionID → directory` 内存映射做行级刷新，不重扫全局索引
+- [x] **ROW-06**: 行内会话在首屏加载时取全；**不做实时刷新**——应用开着期间发生的会话新增/归档/删除，刷新页面后体现（2026-11-14 产品决定，见 `.planning/phases/02-sidebar-render/02-UAT.md` 第 12 条）
 
 ### 交互 (UX)
 

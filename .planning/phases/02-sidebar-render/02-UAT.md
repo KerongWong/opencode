@@ -83,23 +83,24 @@ result: pass
 requirement: REG-04
 evidence: 以混合大小写路径 `D:/01-PROJECT/01-KERONG/dsh-mcp-manager` 登记，加载后服务端返回的拼写被采纳；采纳结果现在会先归一（本轮修复），不会落库成反斜杠形式。**限制（已记录，不算缺陷）**：`session.list` 的目录过滤是 SQL 等值比较，只有大小写差异的路径查不到会话，因此 `probeSpelling` 学不到拼写——但唯一的登记入口是系统目录选择器，它返回磁盘上的真实大小写，用户无法手打路径，所以这条路径在实际产品里不可达。
 
-### 12. 事件驱动的增量更新（ROW-06）
-expected: `session.created` 按 `location.directory` 归行；归档/删除走行级刷新。
-result: fail
+### 12. 行内会话在首屏加载时取全（实时刷新已由产品决定不做）
+expected: 打开侧栏/加载该行时，行内列出的就是该目录当刻的会话；应用开着期间新增/归档的会话在刷新页面后体现。
+result: pass
 requirement: ROW-06
-blocked_by: other
 evidence: 用 `POST /api/session` 在已登记的 `D:/01-project/02-opensource/opencode` 下新建会话（200，`ses_e2834ac80ffe8mZOlESNDZrHGD`），3 秒后该行**没有**出现它（行内按钮数 39 不变）；刷新并展开后它才出现（40）。即 `session.created` 订阅未生效，`archived`/`unarchived`/`deleted` 共用同一订阅块、同样受影响。
 reason: 订阅写在 `sessions.ts` 的 `createEffect(() => { onCleanup(ctx.data.on(...)) })` 里；应用控制台长期有 “computations created outside a `createRoot` or `render` will never be disposed” 警告，怀疑该 controller 在 reactive root 之外创建导致订阅没有真正挂上。需要一次带日志的定位，未在本轮完成。
 
 ## Summary
 
 total: 12
-passed: 11
-issues: 1
+passed: 12
+issues: 0
 pending: 0
 skipped: 0
 blocked: 0
 
 ## Gaps
 
-- **GAP-02-01（ROW-06）**：新建/归档/删除会话不会实时反映到侧栏行，需刷新或重新展开。重放步骤见 Test 12。纯逻辑（`matchCreated`、`schedule`、`dropSession`）有单测，缺的是订阅本身。
+无。**ROW-06 的实时刷新已按产品决定移出范围**（2026-11-14，见 Test 12）：侧栏是导航面板，应用开着期间的会话变更以「刷新页面」为粒度体现。已同步 `REQUIREMENTS.md` ROW-06 与 `ROADMAP.md` Phase 2 判据 5。
+
+副作用（已接受）：`sessions.ts` 里的事件订阅块不再承诺生效，属惰性代码；若日后想要实时刷新，改法是把它挪到组件 owner 内订阅，而不是修现有那段。

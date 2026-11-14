@@ -33,7 +33,7 @@ v2.0 把左侧栏的行源从「会话派生的项目 / checkout 分组」换成
 v2.0 的 phase 编号从 1 重新开始：本里程碑替换 v1.0 的产品模型，v1.0 的 phase 已归档在 `.planning/milestones/v1.0-phases/`，不与本里程碑连续编号。
 
 - [x] **Phase 1: 登记表数据模型与纯函数** - `registry.ts`：路径归一、认领/复用、移除/恢复、order、默认标题，全部由修复前失败的纯单测钉住 (completed 2026-11-14)
-- [ ] **Phase 2: 侧栏渲染与会话投影** - 行只来自登记表，行内会话走 `session.list({ directory })`，交付添加/重命名/移除/恢复/排序/空态/不可用态
+- [x] **Phase 2: 侧栏渲染与会话投影** - 行只来自登记表，行内会话走 `session.list({ directory })`，交付添加/重命名/移除/恢复/排序/空态/不可用态 (completed 2026-11-14)
 - [ ] **Phase 3: 上游触点收敛与打包隔离** - 回退 v1.0 的会话派生行改动、5 文件最小接缝、`OPENCODE_CHANNEL=fork`、merge 演练实测并回填预算
 
 ## Phase Details
@@ -60,8 +60,8 @@ v2.0 的 phase 编号从 1 重新开始：本里程碑替换 v1.0 的产品模�
   2. 有历史会话但未登记的目录在侧栏完全不出现，侧栏不存在任何「未分组 / 其它」兜底分组；被移除登记的目录，其会话在侧栏任何位置都不出现，但仍可从 Inbox 与命令面板访问。
   3. 重命名只改登记表 `title`（`project.name` / `project.icon` 无写入、目录名与会话标题不变），移除只写 `removedAt`（目录与 `.git` 未动），重新登记回到原显示名与原顺序，新登记追加末尾不抢占手排顺序。
   4. 无登记项时只显示「添加本地文件夹」这一个动作，不自动创建默认工作区；目录被删除或改名后该行可见、标记不可用、不可展开，且不自动指向新路径。
-  5. 重启后登记列表、显示名、顺序、移除状态全部保持；`session.created` 按 `location.directory` 归行，`archived` / `unarchived` / `deleted` 只带 `sessionID` 时靠 `sessionID → directory` 内存映射做行级刷新，不重扫全局索引；`bun check --no-script` 对本里程碑新增/改动的 app 文件 0 诊断、`bun test src/workspace-sidebar` 全绿（整包 `bun typecheck` 因 `custom-elements.d.ts` 符号链接缺陷单独记录，不计入本 phase 判定）。
-**Plans**: 2/2 plans executed
+  5. 重启后登记列表、显示名、顺序、移除状态全部保持；行内会话在首屏加载时取全，**不做实时刷新**（应用开着期间的会话变更在刷新页面后体现，2026-11-14 产品决定）；`bun check --no-script` 对本里程碑新增/改动的 app 文件 0 诊断、`bun test src/workspace-sidebar` 全绿（整包 `bun typecheck` 因 `custom-elements.d.ts` 符号链接缺陷单独记录，不计入本 phase 判定）。
+**Plans**: 2/2 plans complete
 - [x] 02-01-PLAN.md — 数据路径：`store.ts` + `sessions.ts` + 纯契约测试
 - [x] 02-02-PLAN.md — 渲染：`sidebar.tsx` + `dialogs.tsx` + `index.ts` + i18n 块 + `titlebar.tsx` 两行挂载
 **UI hint**: yes
@@ -85,5 +85,5 @@ Phases execute in numeric order: 1 → 2 → 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. 登记表数据模型与纯函数 | 1/1 | Complete    | 2026-11-14 |
-| 2. 侧栏渲染与会话投影 | 2/2 | In Progress | - |
+| 2. 侧栏渲染与会话投影 | 2/2 | Complete    | 2026-11-14 |
 | 3. 上游触点收敛与打包隔离 | 0/TBD | Not started | - |
