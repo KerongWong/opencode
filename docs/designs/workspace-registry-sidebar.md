@@ -422,7 +422,33 @@ git merge-base --is-ancestor upstream/dev HEAD          →  0（是祖先）
 | `interface-mode.tsx` | ≤1 处 | ≤3 行 append |
 | **合计** | **≤5 处，且全部是 1–3 行级** | |
 
-### 12.4 真正的演练步骤（每次上游推进后执行）
+### 12.4 本分支实测（2026-11-14）
+
+```
+git rev-list --left-right --count upstream/dev...HEAD   →  0    29
+git merge-base --is-ancestor upstream/dev HEAD          →  0（是祖先）
+git merge-tree --write-tree --name-only upstream/dev HEAD → c3c93bcd…（无 CONFLICT 行）
+```
+
+同样**不构成预算证据**：上游零领先时 merge-tree 必然干净。可用的证据是下面这份触点清单。
+
+```
+git diff --numstat upstream/dev -- packages
+```
+
+| 文件 | 增/删 |
+|---|---|
+| `packages/app/src/runtime/i18n/en.ts` | +13 / −0 |
+| `packages/app/src/shell/titlebar/titlebar.tsx` | +2 / −2 |
+| `packages/app/src/workspace-sidebar/*`（7 个新文件） | +1453 / −0 |
+| `packages/desktop/src/main/constants.ts` | +8 / −3 |
+| `packages/desktop/electron-builder.config.ts` | +2 / −1 |
+| `packages/desktop/src/main/service/cli-version.ts` | +1 / −1 |
+| `packages/plugin/src/gui/core.ts` | +1 / −1 |
+
+`packages/app` 的上游文件仍然只有 2 个、净 13 行；其余是打包身份（`packages/desktop`）与一处 additive 类型放宽（`packages/plugin`，仅把 `channel` 联合加上 `fork`）。
+
+### 12.5 真正的演练步骤（每次上游推进后执行）
 
 ```powershell
 git fetch upstream

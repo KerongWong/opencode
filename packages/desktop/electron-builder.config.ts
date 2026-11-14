@@ -33,7 +33,7 @@ const previewCompressionFpm = (target: "deb" | "rpm") => [`--${target}-compressi
 function resolveChannel() {
   const raw = process.env.OPENCODE_CHANNEL
 
-  if (raw === "dev" || raw === "beta" || raw === "prod") return raw
+  if (raw === "dev" || raw === "beta" || raw === "prod" || raw === "fork") return raw
 
   if (raw === "latest") return "prod"
 
@@ -44,6 +44,7 @@ const APP_IDS = {
   dev: "ai.opencode.desktop.dev",
   beta: "ai.opencode.desktop.beta",
   prod: "ai.opencode.desktop",
+  fork: "ai.opencode.desktop.fork",
 } as const
 
 // libappimage (used by AppImageLauncher) resolves the .desktop entry inside an
