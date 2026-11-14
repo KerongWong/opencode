@@ -60,7 +60,7 @@ export interface App {
    * - `beta`: the beta channel.
    * - `prod`: the stable release.
    */
-  readonly channel: "local" | "dev" | "beta" | "prod" | "fork"
+  readonly channel: "local" | "dev" | "beta" | "prod" | "projects"
   /**
    * Where the code runs. Main is always `desktop`.
    * - `web`: a browser tab.

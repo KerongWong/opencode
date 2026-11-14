@@ -1,14 +1,14 @@
 import { app } from "electron"
 
-// `fork` is this repository's own channel: it keeps its own service registration file, port and
+// `projects` is this repository's own channel: it keeps its own service registration file, port and
 // database (see `packages/cli/src/services/service-config.ts` and `database-path.ts`), which is what
-// lets the fork and an official install run side by side without replacing each other's backend.
-type Channel = "local" | "dev" | "beta" | "prod" | "fork"
+// lets the projects build and an official install run side by side without replacing each other's backend.
+type Channel = "local" | "dev" | "beta" | "prod" | "projects"
 
 const raw = import.meta.env.OPENCODE_CHANNEL
 
 export const CHANNEL: Channel =
-  raw === "local" || raw === "dev" || raw === "beta" || raw === "prod" || raw === "fork" ? raw : "dev"
+  raw === "local" || raw === "dev" || raw === "beta" || raw === "prod" || raw === "projects" ? raw : "dev"
 
 export const VERSION = app.isPackaged ? app.getVersion() : (process.env.OPENCODE_VERSION ?? app.getVersion())
 
@@ -18,7 +18,7 @@ const appNames = {
   dev: "OpenCode Dev",
   beta: "OpenCode Beta",
   prod: "OpenCode",
-  fork: "OpenCode Fork",
+  projects: "OpenCode Projects",
 } satisfies Record<string, string>
 
 const appIDs = {
@@ -26,7 +26,7 @@ const appIDs = {
   dev: "ai.opencode.desktop.dev",
   beta: "ai.opencode.desktop.beta",
   prod: "ai.opencode.desktop",
-  fork: "ai.opencode.desktop.fork",
+  projects: "ai.opencode.desktop.projects",
 } satisfies Record<string, string>
 
 // Local renderer/server mode keeps the dev application identity.

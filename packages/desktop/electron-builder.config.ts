@@ -33,7 +33,7 @@ const previewCompressionFpm = (target: "deb" | "rpm") => [`--${target}-compressi
 function resolveChannel() {
   const raw = process.env.OPENCODE_CHANNEL
 
-  if (raw === "dev" || raw === "beta" || raw === "prod" || raw === "fork") return raw
+  if (raw === "dev" || raw === "beta" || raw === "prod" || raw === "projects") return raw
 
   if (raw === "latest") return "prod"
 
@@ -44,7 +44,7 @@ const APP_IDS = {
   dev: "ai.opencode.desktop.dev",
   beta: "ai.opencode.desktop.beta",
   prod: "ai.opencode.desktop",
-  fork: "ai.opencode.desktop.fork",
+  projects: "ai.opencode.desktop.projects",
 } as const
 
 // libappimage (used by AppImageLauncher) resolves the .desktop entry inside an
@@ -273,14 +273,14 @@ export function getConfig() {
       }
     }
 
-    // The personal fork ships its own identity and deliberately has no update feed: it is not published,
-    // and pointing it at upstream's channel would hand an official build to a fork install.
-    case "fork": {
+    // The personal projects build ships its own identity and deliberately has no update feed: it is not published,
+    // and pointing it at upstream's channel would hand an official build to a projects install.
+    case "projects": {
       return {
         ...base,
         appId,
-        productName: "OpenCode Fork",
-        protocols: { name: "OpenCode Fork", schemes: ["opencode-fork"] },
+        productName: "OpenCode Projects",
+        protocols: { name: "OpenCode Projects", schemes: ["opencode-projects"] },
       }
     }
   }

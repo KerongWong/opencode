@@ -110,7 +110,7 @@ const prepare = Effect.fn("BackgroundService.prepare")(function* (mode: Backgrou
   const client = yield* Effect.promise(() => import("@opencode/client/service"))
 
   // The bundled CLI registers under the channel's filename (service.json for dev/beta,
-  // service-fork.json for fork): probe exactly that file, never the client default, or ensure
+  // service-projects.json for projects): probe exactly that file, never the client default, or ensure
   // waits on a registration that never appears.
   const state = process.env.XDG_STATE_HOME ?? path.join(app.getPath("home"), ".local", "state")
   const channel = process.env.OPENCODE_DESKTOP_SERVER_CHANNEL === "local" ? "local" : CHANNEL
