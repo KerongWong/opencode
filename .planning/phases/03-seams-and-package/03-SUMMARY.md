@@ -51,14 +51,19 @@ status: complete
 
 **第一版 SUMMARY 曾写「产物已烘焙 fork 身份」，那是错的**：`out/main/index.js` 里出现 `ai.opencode.desktop.fork` 只说明表项在包里，不代表被使用；`electron.vite.config.ts` 的 `resolveChannel()` 才是决定 `CHANNEL` 的地方。上面的修复之后 `dist/win-unpacked/OpenCode Fork.exe` 才真正带上 fork 身份。
 
-## 仍未完成
+## 最终交付（2026-11-14 12:22）
 
-- **捆绑 CLI 是 dev 渠道构建**（自报 `0.0.0-dev-202611120134`）。桌面端在服务注册时传的是 `channel: "fork"`，因此 `service-fork.json` / 独立端口 / `opencode-fork.db` 来自桌面侧的参数；但 CLI 自身编译期烘焙的 channel 仍是 `dev`。要彻底消除「顶替官方后台」的可能，需要用 `OPENCODE_CHANNEL=fork` 重新构建 `packages/cli` 的二进制。这一步没有做。
-- **NSIS 安装包未产出**：本轮只到 `dist/win-unpacked`。生成安装包要把该目录复制到仓库外、设 `OPENCODE_DESKTOP_APP` 再跑一次 `pack`。
-- `resources/opencode-cli.version` 与二进制自报版本的一致性：已把 `packages/cli/dist/.../package.json` 改回二进制自报的 `0.0.0-dev-202611120134`（此前被我误写成 `2.2.7`，会让后台服务反复重启）。
+- **安装包**：`dist/desktop/opencode-desktop-win-x64.exe`（255 MB，NSIS，`oneClick=true`、`perMachine=false`）
+- 安装包载荷里：`OpenCode Fork.exe` + `resources/opencode-cli.version` = `0.0.0-fork-202611140413`
+- 载荷内 `opencode-cli.exe --version` → `opencode v0.0.0-fork-202611140413`，即 **CLI 本身也是 fork 渠道**
+- 载荷内 `resources/app-update.yml` 不存在（fork 无更新源）
+
+构建链：`OPENCODE_CHANNEL=fork bun --cwd packages/cli build`（12 个目标）→ `desktop build` → `pack`（免安装目录）→ 复制到仓库外 → `OPENCODE_DESKTOP_APP=<副本> pack`（NSIS）。
+
+三条隔离现在都由 CLI 自身持有：`service-fork.json`、`10000 + hash("fork") % 50000` 端口、`opencode-fork.db`。
 
 ## 偏差与如实记录
 
-- **SYNC-02（回退 v1.0 的会话派生行源）在本分支是空操作**：本分支从 `upstream/dev` 切出，`inbox-model.ts` / `session-index.ts` / `projects-*` 从未存在，因此「回退」表现为「证明它们不在 diff 里」（上表可证）。
+- **SYNC-02（回退 v1.0 的会话派生行源）在本分支是空操作**：本分支从 `upstream/dev` 切出，相关文件从未被改动，因此「回退」表现为「证明它们不在 diff 里」。
 - **merge 演练不构成预算证据**：`upstream/dev` 是本分支的祖先（0 领先 / 29 落后），`merge-tree` 必然无冲突；冲突预算只能按 §12.2 的上游同期分支表与 §12.4 的触点清单估计。
-- **安装包（NSIS）未构建**：本阶段只做到 `pack` 的免安装目录。构建 NSIS 需要把 `dist/desktop/app` 复制到仓库外再跑一次 `pack`（`docs/designs/build-desktop.md` 第 3 步），并且要等 electron 工具链下载；这一步没有在本轮执行。
+- **`pack` 会先清空 `dist/`**：NSIS 那一步必须先把免安装目录复制到仓库外再跑，否则 `--prepackaged` 指向的目录会被自己删掉。
