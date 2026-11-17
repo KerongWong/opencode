@@ -4,17 +4,17 @@ milestone: v2.2
 milestone_name: dsh 交互对齐：@ 引用短路径与会话列表水位线
 current_phase: 06
 current_phase_name: "@ 引用短路径（composer 与已发消息）"
-status: executing
-stopped_at: Completed 06-01-PLAN.md
-last_updated: "2026-11-17T14:38:47.458Z"
+status: verifying
+stopped_at: Completed 06-02-PLAN.md
+last_updated: "2026-11-17T14:47:20.532Z"
 last_activity: 2026-11-17
 last_activity_desc: Phase 06 execution started
-state_head: 2cbc218ac7db59c5a9f5a0a3859bbffcb898d0a0
+state_head: 79573572c1a0dadd382456532bf78d505d8db6bb
 progress:
   total_phases: 2
   completed_phases: 0
   total_plans: 2
-  completed_plans: 1
+  completed_plans: 2
 ---
 
 # Project State
@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-11-17, v2.2 启动)
 
 Phase: 06 (@ 引用短路径（composer 与已发消息）) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-11-17 — Phase 06 execution started
 
 ## Performance Metrics
@@ -63,6 +63,7 @@ Last activity: 2026-11-17 — Phase 06 execution started
 | Plan | Duration | Tasks | Files |
 |------|----------|-------|-------|
 | Phase 06 P01 | 12min | 2 tasks | 4 files |
+| Phase 06 P02 | 15min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -76,6 +77,7 @@ Recent decisions affecting current work:
 - [Roadmap]: COLL 特征（COLL-03/04/05）合并为单 Phase 7——三项是同一次「二元持久化 → 内存水位」替换的分支语义，共享水位状态模型，拆开会导致状态实现三处妥协
 - [Roadmap]: 事实复核（2026-11-17）确认任务简报 A 项（消息级撤销+复制入口）已存在于 App 端，剔除出范围并记入 Out of Scope
 - [Phase 06]: mentionLabels 纯函数落 session-ui（./mention-label 导出）；basename 分组移植 dsh 段窗口语义；PromptAttachment 无 path 字段，labels 作用域由 file.mention.text.slice(1) 派生
+- [Phase 06]: [Phase 06]: composer chip 渲染缩短以 original.content 为 parse 真源（渲染缩短下 textContent 不可信）；file 身份匹配迁移到 dataset，label 比较只保留非 file 类型
 
 ### Pending Todos
 
@@ -107,8 +109,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-11-17T14:38:47.428Z
-Stopped at: Completed 06-01-PLAN.md
+Last session: 2026-11-17T14:47:20.503Z
+Stopped at: Completed 06-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
