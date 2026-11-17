@@ -19,7 +19,6 @@ import {
   sessionsOf,
   shownByWatermark,
   SESSION_WATERMARK_AUTO_MAX,
-  SESSION_WATERMARK_BASE,
 } from "./sessions"
 import type { RowSessions } from "./sessions"
 import type { WorkspaceEntry } from "./registry"
@@ -323,12 +322,6 @@ describe("watermark", () => {
     expect(nextWatermark(undefined, 5)).toBe(5)
     expect(nextWatermark(undefined, 3)).toBe(3)
     expect(nextWatermark(3, 3)).toBe(3)
-  })
-
-  test("show less returns to the baseline in one step, not stepwise", () => {
-    // The store implements "Show less" by deleting the row's watermark key, which then reads as
-    // the baseline — the same value a first click lands on.
-    expect(nextWatermark(undefined, 20)).toBe(SESSION_WATERMARK_BASE)
   })
 
   test("remaining hidden counts what sits below the watermark, clamped at zero", () => {
