@@ -33,7 +33,7 @@ const previewCompressionFpm = (target: "deb" | "rpm") => [`--${target}-compressi
 function resolveChannel() {
   const raw = process.env.OPENCODE_CHANNEL
 
-  if (raw === "dev" || raw === "beta" || raw === "prod" || raw === "projects") return raw
+  if (raw === "dev" || raw === "beta" || raw === "prod" || raw === "projects" || raw === "test") return raw
 
   if (raw === "latest") return "prod"
 
@@ -45,6 +45,7 @@ const APP_IDS = {
   beta: "ai.opencode.desktop.beta",
   prod: "ai.opencode.desktop",
   projects: "ai.opencode.desktop.projects",
+  test: "ai.opencode.desktop.test",
 } as const
 
 // libappimage (used by AppImageLauncher) resolves the .desktop entry inside an
@@ -281,6 +282,16 @@ export function getConfig() {
         appId,
         productName: "OpenCode Projects",
         protocols: { name: "OpenCode Projects", schemes: ["opencode-projects"] },
+      }
+    }
+
+    // The test build mirrors projects: its own identity, no update feed, never published.
+    case "test": {
+      return {
+        ...base,
+        appId,
+        productName: "OpenCode Test",
+        protocols: { name: "OpenCode Test", schemes: ["opencode-test"] },
       }
     }
   }
