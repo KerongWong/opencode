@@ -16,7 +16,9 @@ findings:
   info: 1
   total: 4
   necessity: 1
-status: issues_found
+status: clean
+re_reviewed: 2026-11-17
+re_review_verdict: "CR-01, WR-01, IN-01 verified fixed in 75a6d2f749 / 0e7e8a69db / aaa9fbf5ef; WR-02 intentionally deferred (necessity, out of fix scope). One residual INFO: text/html clipboard flavor for file mentions still carries the short label."
 ---
 
 # Phase 06: Code Review Report — @ mention short path (composer & sent messages)
@@ -24,7 +26,7 @@ status: issues_found
 **Reviewed:** 2026-11-17
 **Depth:** standard
 **Files Reviewed:** 6
-**Status:** issues_found
+**Status:** clean (re-reviewed 2026-11-17 — all in-scope findings resolved; see re-review note at end)
 
 ## Summary
 
@@ -103,6 +105,29 @@ and add a `dom.test.ts`/editor test for a `data-mention="file"` pill carrying `d
 
 ---
 
+## Re-review (2026-11-17, iteration 1 fixes)
+
+**Verdict: clean.** Each in-scope finding was re-verified against the fix commits; all are correctly resolved and the fix report (06-REVIEW-FIX.md) is accurate. No new critical or warning defects introduced.
+
+### Verification per finding
+
+- **CR-01 (commit `75a6d2f749`) — RESOLVED.** `composerClipboardText` (`dom.ts:76-92`) clones the selection, rewrites `[data-mention="file"], [data-mention="reference"]` pills to `"@" + dataset.path`, and returns `undefined` for pill-free selections so the browser's default copy proceeds. It is wired via a correctly gated `onCopy` on the contenteditable (`editor.tsx:411-423`): bails on `defaultPrevented` / missing clipboardData / collapsed selection, and requires every range's common ancestor to lie inside the editor. Composer pills are `contentEditable="false"` (`editor.tsx:603`) and therefore atomic for selection, so a partial-interior selection (the case that required `sessionReferenceRange` expansion on the sent-message side) cannot arise in the composer. Sent messages: `data-path` added to the `data-highlight="file"` span (`message-content.tsx:872`), `sessionReferenceClipboardText` (`markdown-session-links.ts:147-175`) rewrites file mentions to their full `@path`, `sessionReferenceRange` (`:178-195`) expands ranges touching a file mention so partial label selections still copy atomically, and both copy call sites (`copySessionReferences` `message-content.tsx:896-908`, `copySelection` `markdown.tsx:708-724`) flow through it.
+- **WR-01 (commit `0e7e8a69db`) — RESOLVED.** `parseComposerEditor` now prefers `element.dataset.path` over DOM `textContent` when no stored part exists (`editor.tsx:700-701`), with a regression test (`editor.test.ts`) asserting the full `@src/app.tsx` content and offsets for a WeakMap-less pill.
+- **IN-01 (commit `aaa9fbf5ef`) — RESOLVED.** `mentionLabels` trims trailing separators up front while preserving root paths (`/`, `C:\`) and bare drive letters (`mention-label.ts:15-19`); pinned test added (`/a/b/` + `/x/b` → `a/b` / `x/b`).
+- **WR-02 — intentionally skipped.** Necessity category, out of `critical_warning` fix scope; deferral documented in the fix report.
+
+### Tests re-run (all pass)
+
+- `packages/session-ui`: `mention-label.test.ts` + `markdown-session-links.test.ts` → 19 pass / 0 fail.
+- `packages/app` (canonical invocation with the solid-jsx preload): `dom.test.ts` + `editor.test.ts` → 25 pass / 0 fail.
+
+### Residual observation (INFO, non-blocking)
+
+- `markdownClipboardHtml` (`markdown-clipboard.ts:72-99`) sanitizes all attributes off copied elements, so the `text/html` clipboard flavor for a file mention still carries the **short label** (`@app.tsx`), while `text/plain` now correctly carries the full path. Session references get an explicit rewrite to full text in HTML (`:91-95`); file mentions do not. In-app paste paths read `text/plain`, so the locked wire invariant holds, but pasting into an external rich-text target can still pick up the short label. Worth a follow-up if cross-app rich paste matters.
+
+---
+
 _Reviewed: 2026-11-17_
+_Re-reviewed: 2026-11-17 (fix iteration 1 — clean)_
 _Reviewer: the agent (gsd-code-reviewer)_
 _Depth: standard_
