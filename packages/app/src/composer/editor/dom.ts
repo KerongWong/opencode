@@ -10,8 +10,10 @@ let matchOffset = 0
 /**
  * Whether the editor shows `prompt`'s inline parts, read the way `parseComposerEditor` reads the DOM: text runs
  * (split or not), `<br>` as a line break, mention pills by kind, label and target, and other elements by their
- * content. Attachments and empty text parts are ignored. Reads every part when it matches, so a caller in an effect
- * tracks in-place store updates. Runs on every keystroke, so it allocates nothing.
+ * content. Attachments and empty text parts are ignored. A file pill's label is its shortened display text, so
+ * file identity comes from the pill's dataset, not the label; every other mention kind matches its label (or its
+ * target attribute). Reads every part when it matches, so a caller in an effect tracks in-place store updates.
+ * Runs on every keystroke, so it allocates nothing.
  */
 export function editorMatchesPrompt(editor: HTMLElement, prompt: ComposerPrompt) {
   matchPart = 0
@@ -110,7 +112,11 @@ function matchMention(element: HTMLElement, prompt: ComposerPrompt) {
   const kind = part.type === "file" && part.mime === "application/x-directory" ? "reference" : part.type
   const label = element.firstChild instanceof Text && !element.firstChild.nextSibling ? element.firstChild.data : null
 
-  if (element.dataset.mention !== kind || (label ?? element.textContent) !== part.content) return false
+  // A file pill renders a shortened label while the part keeps the full path, so the label cannot identify it;
+  // the dataset comparison below is the identity check.
+  if (element.dataset.mention !== kind) return false
+
+  if (part.type !== "file" && (label ?? element.textContent) !== part.content) return false
 
   if (part.type === "session" && element.title !== part.id) return false
 

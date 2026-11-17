@@ -30,6 +30,7 @@ import { Menu } from "@opencode/ui/menu"
 import { MenuScroll } from "@opencode/ui/menu-scroll"
 import { Tooltip } from "@opencode/ui/tooltip"
 import { AttachmentCard } from "@opencode/session-ui/attachment-card"
+import { mentionLabels } from "@opencode/session-ui/mention-label"
 import { useMarkdown } from "@opencode/session-ui/context/markdown"
 import { ProgressCircle } from "@opencode/ui/progress-circle"
 import type { Upload } from "../attachments/uploads"
@@ -569,6 +570,10 @@ const mentionParts = new WeakMap<HTMLElement, Exclude<ComposerPrompt[number], Co
 
 function renderComposerEditor(editor: HTMLDivElement, prompt: ComposerPrompt) {
   const active = document.activeElement === editor
+  const labels = mentionLabels(
+    prompt.flatMap((part) => (!isAttachment(part) && part.type === "file" ? [{ path: part.path }] : [])),
+  )
+
   editor.replaceChildren(
     ...prompt.flatMap<Node>((part) => {
       if (isAttachment(part)) return []
@@ -576,7 +581,10 @@ function renderComposerEditor(editor: HTMLDivElement, prompt: ComposerPrompt) {
       if (part.type === "text") return [document.createTextNode(part.content)]
       const mention = document.createElement("span")
       mentionParts.set(mention, part)
-      mention.textContent = part.content
+      // File pills show the basename (or the shortest distinguishing suffix) while the part keeps the full
+      // @path; parse reads the content back from the stored part, not the DOM.
+      mention.textContent =
+        part.type === "file" ? "@" + (labels.get(part.path) ?? part.content.slice(1)) : part.content
       mention.contentEditable = "false"
       mention.dir = "auto"
       mention.style.unicodeBidi = "isolate"
@@ -594,6 +602,7 @@ function renderComposerEditor(editor: HTMLDivElement, prompt: ComposerPrompt) {
 
       if (part.type === "file") {
         mention.dataset.path = part.path
+        mention.title = part.path
 
         if (part.mime) mention.dataset.mime = part.mime
 
@@ -670,12 +679,15 @@ function parseComposerEditor(editor: HTMLDivElement) {
       return
     }
 
+    // The pill shows a shortened label, so read the file content back from the stored part: the wire still
+    // carries the full @path. Hand-built DOM without an original keeps the textContent behavior.
+    const fileContent = original?.type === "file" ? original.content : content
     const parsed: ComposerFilePart = {
       type: "file",
-      path: element.dataset.path ?? content.slice(1),
-      content,
+      path: element.dataset.path ?? fileContent.slice(1),
+      content: fileContent,
       start: position,
-      end: position + content.length,
+      end: position + fileContent.length,
     }
 
     const file: ComposerFilePart = original?.type === "file" ? { ...original, ...parsed } : parsed
@@ -684,7 +696,7 @@ function parseComposerEditor(editor: HTMLDivElement) {
 
     if (element.dataset.filename) file.filename = element.dataset.filename
     parts.push(file)
-    position += content.length
+    position += fileContent.length
   }
 
   const visit = (node: Node) => {
