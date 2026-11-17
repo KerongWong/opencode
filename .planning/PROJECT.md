@@ -44,6 +44,7 @@
 - ✓ 会话行相对时间标签（now/Nm/Nh/Nd 分桶 + working 秒级/其余分钟级双粒度时钟）— Phase 4
 - ✓ Add folder 后自动展开并打开会话（add-open 状态机 + attempt 防陈旧 + 超时静默）— Phase 5
 - ✓ 会话列表折叠（默认 5 条、Show more/less、展开态按 rowKey 持久化到 workspace-sidebar-ui.v1）— Phase 5
+- ✓ @ 引用短路径（MENT-01 composer chip 短名 + hover 全路径、MENT-02 已发消息渲染短名 + title 全路径；wire/正文层全路径不变；复制/粘贴/撤销回读双回路保持）— Phase 6
 
 ### Active
 
@@ -104,4 +105,4 @@ This document evolves at phase transitions and milestone boundaries.
 3. Audit Out of Scope — reasons still valid?
 4. Update Context with current state
 
-Last updated: 2026-11-17 — v2.2 启动（dsh 交互对齐：@ 引用短路径与会话列表水位线）
+Last updated: 2026-11-18 — Phase 6 完成（@ 引用短路径，人验通过）
