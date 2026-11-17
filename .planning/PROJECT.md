@@ -35,13 +35,14 @@
 - ✓ v2.0 Phase 01/02 的实现（登记表模型 + 侧栏渲染与会话投影）；Phase 03（触点收敛与打包隔离）随 v2.1 启动归档，验收状态见 `.planning/milestones/v2.0-phases/03-seams-and-package/`
 - ✓ 会话行状态标记（failed/approval/input/working/unread 优先级裁决 + 语义 token 颜色，单一真相 session-status.ts）— Phase 4
 - ✓ 会话行相对时间标签（now/Nm/Nh/Nd 分桶 + working 秒级/其余分钟级双粒度时钟）— Phase 4
+- ✓ Add folder 后自动展开并打开会话（add-open 状态机 + attempt 防陈旧 + 超时静默）— Phase 5
+- ✓ 会话列表折叠（默认 5 条、Show more/less、展开态按 rowKey 持久化到 workspace-sidebar-ui.v1）— Phase 5
 
 ### Active
 
-<!-- v2.1 待实现。REQ-ID 在 REQUIREMENTS.md 定义后回填。 -->
+<!-- 无。v2.1 四项改动全部交付（Phase 4/5）。 -->
 
-- [ ] Add folder 后自动展开并打开会话（最近一个或新建）— NAV-01（Phase 5）
-- [ ] 会话列表折叠（默认 5 条，Show more/less，展开态按 project key 持久化）— COLL-01/02（Phase 5）
+- （空）
 
 ### Out of Scope
 
@@ -91,4 +92,4 @@ This document evolves at phase transitions and milestone boundaries.
 3. Audit Out of Scope — reasons still valid?
 4. Update Context with current state
 
-Last updated: 2026-11-17 — v2.1 milestone started (workspace-sidebar 会话行状态与交互增强)；v2.0 phases 归档至 milestones/v2.0-phases/
+Last updated: 2026-11-17 — v2.1 Phase 4/5 完成（会话行状态/时间标签 + Add-folder 跳转 + 会话折叠）

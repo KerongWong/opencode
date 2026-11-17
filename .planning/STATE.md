@@ -3,19 +3,18 @@ gsd_state_version: "1.0"
 milestone: v2.1
 milestone_name: workspace-sidebar 会话行状态与交互增强
 current_phase: 05
-current_phase_name: Add-folder 跳转与会话列表折叠
-status: executing
-stopped_at: Phase 04 complete, ready to execute Phase 05
-last_updated: "2026-11-17T06:28:11.012Z"
+status: completed
+stopped_at: Phase 05 complete — all phases complete
+last_updated: "2026-11-17T07:29:50.602Z"
 last_activity: 2026-11-17
-last_activity_desc: Phase 04 complete, transitioned to Phase 05
-state_head: 597e5a55595aa8ce5ff63f61c44d81932fcfbd2d
+last_activity_desc: Phase 05 complete
+state_head: 19894e3eca993a8441e2bfa87f990a33e048ec95
 progress:
   total_phases: 2
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 2
-  completed_plans: 1
-  percent: 50
+  completed_plans: 2
+  percent: 100
 ---
 
 # Project State
@@ -30,15 +29,15 @@ See: .planning/PROJECT.md (updated 2026-11-13)
 
 ## Current Position
 
-Phase: 05 — Add-folder 跳转与会话列表折叠
+Phase: 05
 Plan: Not started
-Status: Ready to execute
-Last activity: 2026-11-17 — Phase 04 complete, transitioned to Phase 05
+Status: All phases complete
+Last activity: 2026-11-17 — Phase 05 complete
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4 (v2.0)
+- Total plans completed: 5 (v2.0)
 - Average duration: 13min
 - Total execution time: 0.2 hours
 
@@ -50,6 +49,7 @@ Last activity: 2026-11-17 — Phase 04 complete, transitioned to Phase 05
 | 2 | 2 | - | - |
 | 3 | - | - | - |
 | 04 | 1 | - | - |
+| 05 | 1 | - | - |
 
 **Recent Trend:**
 - Last 5 plans: -
@@ -114,5 +114,5 @@ Items acknowledged and deferred at milestone close, most recent first:
 ## Session Continuity
 
 Last session: 2026-11-13T17:57:11.626Z
-Stopped at: Phase 04 complete, ready to execute Phase 05
+Stopped at: Phase 05 complete — all phases complete
 Resume file: None

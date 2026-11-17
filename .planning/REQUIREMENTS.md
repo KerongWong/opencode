@@ -21,12 +21,12 @@
 
 ### Add-folder 跳转 (NAV)
 
-- [ ] **NAV-01**: 用户通过 sidebar 的 Add 注册 folder 成功后，该行自动展开；若该 folder 已有会话则打开最近一个，否则新建会话并打开；整个注册→等待会话→打开的流程是显式状态机（纯 transition + driver，attempt 防陈旧）
+- [x] **NAV-01**: 用户通过 sidebar 的 Add 注册 folder 成功后，该行自动展开；若该 folder 已有会话则打开最近一个，否则新建会话并打开；整个注册→等待会话→打开的流程是显式状态机（纯 transition + driver，attempt 防陈旧）
 
 ### 会话列表折叠 (COLL)
 
-- [ ] **COLL-01**: 每个 project 行默认只显示最近 5 条会话；超过时提供 "Show N more" 展开全部与 "Show less" 收起
-- [ ] **COLL-02**: 展开/收起状态按 project key（rowKey）持久化在 `Persist.serverGlobal` 客户端存储，重启后保持（激活 v2.0 延期的 UIX-01）
+- [x] **COLL-01**: 每个 project 行默认只显示最近 5 条会话；超过时提供 "Show N more" 展开全部与 "Show less" 收起
+- [x] **COLL-02**: 展开/收起状态按 project key（rowKey）持久化在 `Persist.serverGlobal` 客户端存储，重启后保持（激活 v2.0 延期的 UIX-01）
 
 ## v2 Requirements
 
@@ -59,9 +59,9 @@ Roadmap: `.planning/ROADMAP.md` — milestone v2.1「workspace-sidebar 会话行
 | STAT-01 | Phase 4 | Complete |
 | STAT-02 | Phase 4 | Complete |
 | STAT-03 | Phase 4 | Complete |
-| NAV-01 | Phase 5 | Pending |
-| COLL-01 | Phase 5 | Pending |
-| COLL-02 | Phase 5 | Pending |
+| NAV-01 | Phase 5 | Complete |
+| COLL-01 | Phase 5 | Complete |
+| COLL-02 | Phase 5 | Complete |
 | UIX-02 | — | Deferred (v2) |
 | UIX-03 | — | Deferred (v2) |
 | STY-01 | — | Deferred (v2) |
