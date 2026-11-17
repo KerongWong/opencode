@@ -85,23 +85,6 @@ export function sessionsOf(rows: Record<RowKey, RowSessions>, key: RowKey) {
   return rows[key] ?? { status: "loading", sessions: [] }
 }
 
-/** How many sessions a project shows before "show more" (COLL-01 default). */
-export const SESSIONS_PER_PROJECT = 5
-
-/**
- * COLL-01: how much of a row's session list is on screen. A revealed row shows everything;
- * otherwise only the newest `limit` rows. Pure so the cutoff math is unit-testable.
- */
-export function shownSessions<T>(sessions: readonly T[], revealed: boolean, limit = SESSIONS_PER_PROJECT) {
-  if (revealed) return sessions
-
-  return sessions.slice(0, limit)
-}
-
-export function hiddenSessionCount(count: number, limit = SESSIONS_PER_PROJECT) {
-  return Math.max(0, count - limit)
-}
-
 /** How many sessions a row shows before "show more" (COLL-03 baseline). */
 export const SESSION_WATERMARK_BASE = 5
 
@@ -111,19 +94,32 @@ export const SESSION_WATERMARK_BASE = 5
  */
 export const SESSION_WATERMARK_AUTO_MAX = 50
 
-/** COLL-03: one "show more" click raises the row's watermark. Stub — implemented in GREEN. */
-export function nextWatermark(_current: number | undefined, _total: number): number {
-  throw new Error("not implemented")
+/**
+ * COLL-03: one "show more" click raises the row's watermark by one batch, except when the hidden
+ * remainder is at most one batch — then the row expands to everything in a single step (dsh's
+ * Infinity semantics, boundary equality included). Undefined reads as the baseline, and a row at
+ * or past its total never moves, so the watermark is monotonic across clicks.
+ */
+export function nextWatermark(current: number | undefined, total: number) {
+  if (current !== undefined && current >= total) return current
+
+  if (total <= SESSION_WATERMARK_BASE) return total
+
+  if (current === undefined) return SESSION_WATERMARK_BASE
+
+  if (total - current <= SESSION_WATERMARK_BASE) return total
+
+  return current + SESSION_WATERMARK_BASE
 }
 
-/** COLL-03: hidden remainder below the watermark. Stub — implemented in GREEN. */
-export function remainingHidden(_total: number, _watermark: number): number {
-  throw new Error("not implemented")
+/** COLL-03: the button count reads the hidden remainder below the watermark, clamped at zero. */
+export function remainingHidden(total: number, watermark: number) {
+  return Math.max(0, total - watermark)
 }
 
-/** COLL-03: the on-screen prefix of a row's list. Stub — implemented in GREEN. */
-export function shownByWatermark<T>(sessions: readonly T[], _watermark: number): readonly T[] {
-  throw new Error("not implemented")
+/** COLL-03: the on-screen prefix of a row's list. Pure so the cutoff is unit-testable. */
+export function shownByWatermark<T>(sessions: readonly T[], watermark: number) {
+  return sessions.slice(0, watermark)
 }
 
 const SESSION_LIST_LIMIT = 50
