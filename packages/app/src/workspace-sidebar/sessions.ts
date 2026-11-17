@@ -260,7 +260,9 @@ export function createWorkspaceSessions(input: {
         archived: false,
       })
 
-      setState("rows", key, { status: "ready", sessions: result.data })
+      const ready: RowSessions = { status: "ready", sessions: result.data }
+
+      setState("rows", key, ready)
 
       for (const [sessionID, row] of attributeSessions(result.data, key)) sessionRows.set(sessionID, row)
 
@@ -268,7 +270,7 @@ export function createWorkspaceSessions(input: {
 
       if (spelling !== undefined) adoptSpelling(entry, key, spelling)
 
-      if (probe && needsAvailabilityProbe(state.rows[key]!)) await probeAvailability(entry, key)
+      if (probe && needsAvailabilityProbe(ready)) await probeAvailability(entry, key)
     } catch {
       const row = state.rows[key]
 
