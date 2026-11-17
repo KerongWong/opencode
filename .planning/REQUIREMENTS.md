@@ -5,7 +5,7 @@
 ### MENT — @ 引用短路径
 
 - [ ] **MENT-01**: 用户在 composer 输入框中看到 file mention chip 显示 basename（同一 draft 内多个同名文件时显示最短区分后缀），hover/title 显示完整路径
-- [ ] **MENT-02**: 用户在已发消息中看到 @ 文件引用渲染为 basename（同条消息内多个同名文件时显示最短区分后缀），hover/title 显示原始完整路径
+- [x] **MENT-02**: 用户在已发消息中看到 @ 文件引用渲染为 basename（同条消息内多个同名文件时显示最短区分后缀），hover/title 显示原始完整路径
 
 ### COLL — 会话列表水位线
 

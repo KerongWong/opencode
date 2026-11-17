@@ -5,16 +5,16 @@ milestone_name: dsh 交互对齐：@ 引用短路径与会话列表水位线
 current_phase: 06
 current_phase_name: "@ 引用短路径（composer 与已发消息）"
 status: executing
-stopped_at: v2.2 roadmap created（Phase 6/7 待审批）
-last_updated: "2026-11-17T12:39:09.442Z"
+stopped_at: Completed 06-01-PLAN.md
+last_updated: "2026-11-17T14:38:47.458Z"
 last_activity: 2026-11-17
 last_activity_desc: Phase 06 execution started
-state_head: 83d33a79c99488c2ae46c5960fca5a5531e70846
+state_head: 2cbc218ac7db59c5a9f5a0a3859bbffcb898d0a0
 progress:
   total_phases: 2
   completed_phases: 0
   total_plans: 2
-  completed_plans: 0
+  completed_plans: 1
 ---
 
 # Project State
@@ -30,8 +30,8 @@ See: .planning/PROJECT.md (updated 2026-11-17, v2.2 启动)
 ## Current Position
 
 Phase: 06 (@ 引用短路径（composer 与已发消息）) — EXECUTING
-Plan: 1 of 2
-Status: Executing Phase 06
+Plan: 2 of 2
+Status: Ready to execute
 Last activity: 2026-11-17 — Phase 06 execution started
 
 ## Performance Metrics
@@ -58,6 +58,11 @@ Last activity: 2026-11-17 — Phase 06 execution started
 - Trend: -
 
 *Updated after each plan completion*
+**Per-Plan Metrics:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 06 P01 | 12min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -70,6 +75,7 @@ Recent decisions affecting current work:
 - [Roadmap]: MENT 特征（MENT-01/02）合并为单 Phase 6——成功判据是同一条「渲染层缩短、正文/wire 不变」契约的 composer 侧与消息侧两面，拆开会产生两个薄 phase
 - [Roadmap]: COLL 特征（COLL-03/04/05）合并为单 Phase 7——三项是同一次「二元持久化 → 内存水位」替换的分支语义，共享水位状态模型，拆开会导致状态实现三处妥协
 - [Roadmap]: 事实复核（2026-11-17）确认任务简报 A 项（消息级撤销+复制入口）已存在于 App 端，剔除出范围并记入 Out of Scope
+- [Phase 06]: mentionLabels 纯函数落 session-ui（./mention-label 导出）；basename 分组移植 dsh 段窗口语义；PromptAttachment 无 path 字段，labels 作用域由 file.mention.text.slice(1) 派生
 
 ### Pending Todos
 
@@ -101,8 +107,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-11-17
-Stopped at: v2.2 roadmap created（Phase 6/7 待审批）
+Last session: 2026-11-17T14:38:47.428Z
+Stopped at: Completed 06-01-PLAN.md
 Resume file: None
 
 ## Operator Next Steps

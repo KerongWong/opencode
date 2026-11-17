@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 8
+open_count: 9
 waived_count: 0
 fixed_count: 1
-total_count: 9
-last_updated: 2026-11-13T12:37:20.340Z
+total_count: 10
+last_updated: 2026-11-17T14:39:06.772Z
 ---
 
 # Broken Windows Ledger
@@ -24,6 +24,7 @@ last_updated: 2026-11-13T12:37:20.340Z
 | 7 | 01 | unrun-verify | .planning/phases/01-row-source-convergence/01-03-PLAN.md |  | Manual: archive a session from Inbox then open its Archived search without leaving the view; the session is still listed | open |  | 2026-11-12T08:58:21.209Z |  |
 | 8 | 02 | unrun-verify | packages/app/src/shell/titlebar/projects.tsx |  | 清单读取失败时的静默降级仍未观察（需端点级故障注入）；「每个可见 projectID 恰好一次请求」与「同一 git 根两份 checkout 各一行」已由 agent 在真实数据上用 CDP 读网络/可访问性树验证（见 02-UAT.md §Agent-Run Evidence） | fixed |  | 2026-11-13T08:25:59.777Z | 2026-11-13T12:37:12.725Z |
 | 9 | 02 | unrun-verify | packages/app/src/shell/titlebar/projects.tsx |  | 首帧→清单到达之间的瞬时抖动未被仪器化（CDP 无帧级采样）；本机数据里没有「会话落在 checkout 子目录」的样本，故 CHK-02/CHK-03 的 partial backstop 只核对了稳定态。全新项目（sandboxes 为空）在清单到达前仍可能先按会话目录成行（02-02 objective 已声明的首帧边界） | open |  | 2026-11-13T12:37:20.340Z |  |
+| 10 | 06 | deviation | packages/session-ui/src/message/message-content.tsx |  | 06-01: props.files 无 path 字段，labels 作用域改由 file.mention.text.slice(1) 派生（Rule 1 修正，已提交 83509df） | open |  | 2026-11-17T14:39:06.772Z |  |
 
 ````json
 [
@@ -143,6 +144,19 @@ last_updated: 2026-11-13T12:37:20.340Z
     "recorded_at": "2026-11-13T12:37:20.340Z",
     "resolved_at": null,
     "milestone": "v1.0"
+  },
+  {
+    "id": 10,
+    "kind": "deviation",
+    "phase": "06",
+    "file": "packages/session-ui/src/message/message-content.tsx",
+    "line": null,
+    "description": "06-01: props.files 无 path 字段，labels 作用域改由 file.mention.text.slice(1) 派生（Rule 1 修正，已提交 83509df）",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-11-17T14:39:06.772Z",
+    "resolved_at": null,
+    "milestone": "v2.2"
   }
 ]
 ````
