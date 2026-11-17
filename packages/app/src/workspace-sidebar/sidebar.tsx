@@ -21,11 +21,12 @@ import { homeProjectDirectories } from "@/shell/layout/helpers"
 import { useLayout } from "@/shell/state/layout"
 import { createProjectSessionActions } from "@/shell/tabs/project-sessions"
 import { useTabs } from "@/shell/tabs/tabs"
-import { ProjectSessionRow } from "@/shell/titlebar/project-session-row"
 import { createSidebarActivityListener } from "@/shell/titlebar/sidebar-organized"
 import { useDirectoryPicker } from "@/workspaces/selection/picker"
 import { WorkspaceRemoveDialog, WorkspaceRenameDialog } from "./dialogs"
 import { detectHostPlatform, directoryKey, hostPlatform, visible, type WorkspaceEntry } from "./registry"
+import { SessionRow } from "./session-row"
+import type { SessionRowStatus } from "./session-status"
 import { createWorkspaceSessions, sessionsOf } from "./sessions"
 import { createWorkspaceRegistry } from "./store"
 
@@ -91,6 +92,30 @@ function WorkspaceSidebarBody(props: { conn: ServerConnection.Any }) {
   })
 
   const [ui, setUi] = createStore<{ expanded: Record<string, boolean> }>({ expanded: {} })
+
+  // Dual-granularity clock (TIME-02): minute-level always, second-level only while a visible row
+  // is working. Rows register through onWorkingChange; the second timer exists only inside this effect.
+  const [clock, setClock] = createStore({ second: Date.now(), minute: Date.now() })
+
+  const minuteTimer = setInterval(() => setClock("minute", Date.now()), 60_000)
+
+  onCleanup(() => clearInterval(minuteTimer))
+
+  const [working, setWorking] = createStore<Record<string, boolean>>({})
+
+  createEffect(() => {
+    if (!Object.values(working).some(Boolean)) return
+
+    setClock("second", Date.now())
+
+    const secondTimer = setInterval(() => setClock("second", Date.now()), 1_000)
+
+    onCleanup(() => clearInterval(secondTimer))
+  })
+
+  const now = (status: SessionRowStatus) => (status === "working" ? clock.second : clock.minute)
+
+  const setRowWorking = (sessionID: string, value: boolean) => setWorking(sessionID, value)
 
   let scroller: HTMLDivElement | undefined
   let restoreFrame = 0
@@ -258,6 +283,8 @@ function WorkspaceSidebarBody(props: { conn: ServerConnection.Any }) {
                       row={sessionsOf(sessions.rows(), key())}
                       isOpenTab={isOpenTab}
                       isActive={isActive}
+                      now={now}
+                      onWorkingChange={setRowWorking}
                       onOpen={(session) =>
                         actions.openProjectSession(props.conn, session.location.directory, session, { preview: true })
                       }
@@ -295,6 +322,8 @@ function WorkspaceRow(props: {
   row: { status: "loading" | "ready" | "failed"; sessions: SessionInfo[] }
   isOpenTab: (sessionID: string) => boolean
   isActive: (sessionID: string) => boolean
+  now: (status: SessionRowStatus) => number
+  onWorkingChange: (sessionID: string, working: boolean) => void
   onOpen: (session: SessionInfo) => void
 }) {
   const language = useLanguage()
@@ -401,11 +430,13 @@ function WorkspaceRow(props: {
           </Show>
           <Key each={props.row.sessions} by={(session) => session.id}>
             {(session) => (
-              <ProjectSessionRow
+              <SessionRow
                 server={props.server}
                 session={session()}
                 openTab={props.isOpenTab(session().id)}
                 active={props.isActive(session().id)}
+                now={props.now}
+                onWorkingChange={props.onWorkingChange}
                 onOpen={() => props.onOpen(session())}
               />
             )}
