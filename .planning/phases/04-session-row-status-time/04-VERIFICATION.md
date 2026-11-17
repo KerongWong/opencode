@@ -1,10 +1,10 @@
 ---
 phase: 04-session-row-status-time
-verified: 2026-11-17T10:05:00Z
+verified: 2026-11-17T10:25:00Z
 status: passed
 score: 6/6 must-haves verified
 covered_files: [".planning/phases/04-session-row-status-time/04-01-PLAN.md", ".planning/phases/04-session-row-status-time/04-01-SUMMARY.md", "packages/app/src/workspace-sidebar/session-status.ts", "packages/app/src/workspace-sidebar/session-status.test.ts", "packages/app/src/workspace-sidebar/session-row.tsx", "packages/app/src/workspace-sidebar/sidebar.tsx"]
-covered_digest: "v4:sha256:655dbb7ec0b8ac4b2879b54c82d72193eca69d51ed1cb548e70cb0861da94cd5"
+covered_digest: "v4:sha256:ccb3a079ab4208ac70381091bb8e22f52dc0f4253055cc7981834a81e8309dcd"
 behavior_unverified: 0
 overrides_applied: 0
 ---
@@ -25,7 +25,7 @@ overrides_applied: 0
 | 2 | 时间分桶 <60s now / <3600 minutes / <86400 hours / 否则 days，未来时间钳 0 | ✓ VERIFIED | `session-status.ts:30-37` `elapsedBucket`；边界用例 59/60、3599/3600、86399/86400、未来时间全 pass |
 | 3 | 标记映射符合 STAT-03：failed→close/danger、approval→circle-exclamation/warning、input→help/warning、working→ring/info、unread→check/success；颜色全部 `text-v2-state-fg-*`；ring 内联 `var(--v2-state-fg-info)` | ✓ VERIFIED | `session-status.ts:43-52` `statusMark` + 用例；`session-row.tsx` 渲染从 `statusMark` 派生（单一真相） |
 | 4 | 行渲染：标记槽（固定 size-4）+ 11px tabular-nums muted 时间标签 + sr-only 状态名；零新增 i18n key | ✓ VERIFIED | `session-row.tsx`；`git diff upstream/dev -- packages/app/src/runtime/i18n/en.ts` 为空（复用 `sidebar.inbox.*`）；type gate 0 诊断 |
-| 5 | 双粒度时钟：minute 常驻、second 仅 working 计数 >0；行经 onWorkingChange 注册、onCleanup 注销 | ✓ VERIFIED | `sidebar.tsx` clock store + effect（effect 内创建 second interval、onCleanup 清理；无 working 时 effect 提前 return、无定时器） |
+| 5 | 双粒度时钟：minute 常驻、second 仅 working 计数 >0；行经 onWorkingChange 注册、onCleanup 注销；注销后注册表键即删（review F-02） | ✓ VERIFIED | `sidebar.tsx` clock store + effect（effect 内创建 second interval、onCleanup 清理；无 working 时 effect 提前 return、无定时器）；active 行抑制 unread 标记（review F-03） |
 | 6 | `shell/titlebar/` 零改动；workspace-sidebar 单测全绿 | ✓ VERIFIED | `git status --porcelain -- packages/app/src/shell` 为空；`bun test … src/workspace-sidebar` → 112 pass / 0 fail；`bun check --no-script` 4 文件 0 诊断；`lint-changed` → 0 problem |
 
 **Score:** 6/6 truths verified
