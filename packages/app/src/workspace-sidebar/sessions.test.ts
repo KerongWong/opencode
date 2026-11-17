@@ -7,13 +7,15 @@ import {
   createWorkspaceSessions,
   matchCreated,
   needsAvailabilityProbe,
+  nextWatermark,
   queryDirectoryFor,
+  remainingHidden,
   rowKeyFor,
   rowKeyOf,
   serverSpelling,
   sessionsOf,
-  shownSessions,
-  hiddenSessionCount,
+  shownByWatermark,
+  SESSION_WATERMARK_BASE,
 } from "./sessions"
 import type { RowSessions } from "./sessions"
 import type { WorkspaceEntry } from "./registry"
@@ -288,26 +290,52 @@ describe("createWorkspaceSessions", () => {
   })
 })
 
-describe("shownSessions / hiddenSessionCount", () => {
+describe("watermark", () => {
   const list = (count: number) => Array.from({ length: count }, (_, index) => ({ id: `s${index}` }))
 
-  test("a collapsed row shows the most recent five", () => {
-    expect(shownSessions(list(6), false).map((item) => item.id)).toEqual(["s0", "s1", "s2", "s3", "s4"])
+  test("the first click lands on the baseline of five (COLL-03)", () => {
+    expect(nextWatermark(undefined, 20)).toBe(5)
   })
 
-  test("a revealed row shows everything", () => {
-    expect(shownSessions(list(6), true)).toHaveLength(6)
-    expect(shownSessions(list(3), true)).toHaveLength(3)
+  test("each click raises the watermark by five", () => {
+    expect(nextWatermark(5, 20)).toBe(10)
+    expect(nextWatermark(10, 20)).toBe(15)
   })
 
-  test("an empty row shows nothing", () => {
-    expect(shownSessions([], false)).toEqual([])
+  test("exactly five remaining expands everything in one step", () => {
+    expect(nextWatermark(15, 20)).toBe(20)
   })
 
-  test("hidden count clamps at zero around the limit", () => {
-    expect(hiddenSessionCount(5)).toBe(0)
-    expect(hiddenSessionCount(6)).toBe(1)
-    expect(hiddenSessionCount(0)).toBe(0)
-    expect(hiddenSessionCount(12, 5)).toBe(7)
+  test("fewer than five remaining expands everything in one step too", () => {
+    expect(nextWatermark(11, 14)).toBe(14)
+  })
+
+  test("a fully expanded row never drops on further clicks", () => {
+    expect(nextWatermark(20, 20)).toBe(20)
+    expect(nextWatermark(10, 3)).toBe(10)
+  })
+
+  test("a total at or under the baseline reads as fully shown and never moves", () => {
+    expect(nextWatermark(undefined, 5)).toBe(5)
+    expect(nextWatermark(undefined, 3)).toBe(3)
+    expect(nextWatermark(3, 3)).toBe(3)
+  })
+
+  test("show less returns to the baseline in one step, not stepwise", () => {
+    // The store implements "Show less" by deleting the row's watermark key, which then reads as
+    // the baseline — the same value a first click lands on.
+    expect(nextWatermark(undefined, 20)).toBe(SESSION_WATERMARK_BASE)
+  })
+
+  test("remaining hidden counts what sits below the watermark, clamped at zero", () => {
+    expect(remainingHidden(20, 5)).toBe(15)
+    expect(remainingHidden(6, 6)).toBe(0)
+    expect(remainingHidden(6, 20)).toBe(0)
+  })
+
+  test("the watermark slices the visible prefix", () => {
+    expect(shownByWatermark(list(20), 5).map((item) => item.id)).toEqual(["s0", "s1", "s2", "s3", "s4"])
+    expect(shownByWatermark(list(20), 20)).toHaveLength(20)
+    expect(shownByWatermark([], 5)).toEqual([])
   })
 })

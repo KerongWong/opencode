@@ -102,6 +102,30 @@ export function hiddenSessionCount(count: number, limit = SESSIONS_PER_PROJECT) 
   return Math.max(0, count - limit)
 }
 
+/** How many sessions a row shows before "show more" (COLL-03 baseline). */
+export const SESSION_WATERMARK_BASE = 5
+
+/**
+ * COLL-05: auto-raise ceiling only — clicking "show more" is unbounded. Reserved for 07-02's
+ * attention lift; this plan exports it so the constant has one spelling.
+ */
+export const SESSION_WATERMARK_AUTO_MAX = 50
+
+/** COLL-03: one "show more" click raises the row's watermark. Stub — implemented in GREEN. */
+export function nextWatermark(_current: number | undefined, _total: number): number {
+  throw new Error("not implemented")
+}
+
+/** COLL-03: hidden remainder below the watermark. Stub — implemented in GREEN. */
+export function remainingHidden(_total: number, _watermark: number): number {
+  throw new Error("not implemented")
+}
+
+/** COLL-03: the on-screen prefix of a row's list. Stub — implemented in GREEN. */
+export function shownByWatermark<T>(sessions: readonly T[], _watermark: number): readonly T[] {
+  throw new Error("not implemented")
+}
+
 const SESSION_LIST_LIMIT = 50
 
 /**
