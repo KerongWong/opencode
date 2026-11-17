@@ -54,6 +54,8 @@ export function SessionRow(props: {
   now: (status: SessionRowStatus) => number
   /** Registers the row with the sidebar's second-level clock while it is working. */
   onWorkingChange?: (sessionID: string, working: boolean) => void
+  /** Reports the row's status memo up so the sidebar's watermark driver can raise attention rows. */
+  onStatusChange?: (sessionID: string, status: SessionRowStatus) => void
   onOpen: () => void
 }) {
   const language = useLanguage()
@@ -110,6 +112,13 @@ export function SessionRow(props: {
     props.onWorkingChange?.(props.session.id, true)
 
     onCleanup(() => props.onWorkingChange?.(props.session.id, false))
+  })
+
+  // COLL-04: the watermark driver reads the reported statuses; the effect re-runs only when the
+  // memo actually changes, so a steady state reports nothing. Stale ids are harmless — the driver
+  // only consults sessions currently in a row.
+  createEffect(() => {
+    props.onStatusChange?.(props.session.id, status())
   })
 
   const age = (value: SessionRowStatus) => {

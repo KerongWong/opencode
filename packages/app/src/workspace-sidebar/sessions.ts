@@ -123,14 +123,30 @@ export function shownByWatermark<T>(sessions: readonly T[], watermark: number) {
   return sessions.slice(0, watermark)
 }
 
-/** COLL-04 stub: the attention lift lands in GREEN (07-02). */
-export function requiredWatermark(_index: number, _status: SessionRowStatus, _isActive: boolean): number {
-  throw new Error("not implemented")
+/**
+ * COLL-04: the watermark an attention session forces when it sits at `index` of its row. Working,
+ * approval, input and unread sessions — plus the active session, whatever its status — are visible
+ * without a click when they are within the auto-raise ceiling; the ceiling constrains only this
+ * automatic lift, never "show more" clicks. Everything else reads as no requirement (0), so a row
+ * full of quiet sessions never triggers a write. Index is zero-based, the ceiling is inclusive.
+ */
+export function requiredWatermark(index: number, status: SessionRowStatus, isActive: boolean) {
+  const attention = status === "working" || status === "approval" || status === "input" || status === "unread"
+
+  if (index <= SESSION_WATERMARK_AUTO_MAX && (attention || isActive)) return index + 1
+
+  return 0
 }
 
-/** COLL-04 stub: the monotonic raise half lands in GREEN (07-02). */
-export function raisedWatermark(_current: number, _required: number): number {
-  throw new Error("not implemented")
+/**
+ * COLL-04: the raise half of the render-phase lift — monotonic by construction. A requirement at
+ * or below the current watermark leaves it untouched, and an equal requirement returns the current
+ * value, so the driver can compare and skip the store write entirely (no signal churn).
+ */
+export function raisedWatermark(current: number, required: number) {
+  if (required > current) return required
+
+  return current
 }
 
 const SESSION_LIST_LIMIT = 50
