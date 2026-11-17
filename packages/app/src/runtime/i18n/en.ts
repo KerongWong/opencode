@@ -906,6 +906,9 @@ export const dict = {
   "sidebar.workspace.unavailable.description":
     "This folder was moved or deleted. Remove this workspace and add it again.",
   "sidebar.workspace.sessions.empty": "No sessions yet",
+  "sidebar.workspace.sessions.more.one": "Show {{count}} more",
+  "sidebar.workspace.sessions.more.other": "Show {{count}} more",
+  "sidebar.workspace.sessions.less": "Show less",
   "sidebar.workspace.options": "Workspace options",
   "sidebar.workspace.rename.title": "Rename workspace",
   "sidebar.workspace.remove.title": "Remove workspace",

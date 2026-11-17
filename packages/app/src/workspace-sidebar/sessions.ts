@@ -85,6 +85,23 @@ export function sessionsOf(rows: Record<RowKey, RowSessions>, key: RowKey) {
   return rows[key] ?? { status: "loading", sessions: [] }
 }
 
+/** How many sessions a project shows before "show more" (COLL-01 default). */
+const SESSIONS_PER_PROJECT = 5
+
+/**
+ * COLL-01: how much of a row's session list is on screen. A revealed row shows everything;
+ * otherwise only the newest `limit` rows. Pure so the cutoff math is unit-testable.
+ */
+export function shownSessions<T>(sessions: readonly T[], revealed: boolean, limit = SESSIONS_PER_PROJECT) {
+  if (revealed) return sessions
+
+  return sessions.slice(0, limit)
+}
+
+export function hiddenSessionCount(count: number, limit = SESSIONS_PER_PROJECT) {
+  return Math.max(0, count - limit)
+}
+
 const SESSION_LIST_LIMIT = 50
 
 /**

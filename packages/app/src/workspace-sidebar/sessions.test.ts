@@ -12,6 +12,8 @@ import {
   rowKeyOf,
   serverSpelling,
   sessionsOf,
+  shownSessions,
+  hiddenSessionCount,
 } from "./sessions"
 import type { RowSessions } from "./sessions"
 import type { WorkspaceEntry } from "./registry"
@@ -283,5 +285,29 @@ describe("createWorkspaceSessions", () => {
 
     expect(fixture.state.listCalls).toEqual(["d:/code/app"])
     dispose()
+  })
+})
+
+describe("shownSessions / hiddenSessionCount", () => {
+  const list = (count: number) => Array.from({ length: count }, (_, index) => ({ id: `s${index}` }))
+
+  test("a collapsed row shows the most recent five", () => {
+    expect(shownSessions(list(6), false).map((item) => item.id)).toEqual(["s0", "s1", "s2", "s3", "s4"])
+  })
+
+  test("a revealed row shows everything", () => {
+    expect(shownSessions(list(6), true)).toHaveLength(6)
+    expect(shownSessions(list(3), true)).toHaveLength(3)
+  })
+
+  test("an empty row shows nothing", () => {
+    expect(shownSessions([], false)).toEqual([])
+  })
+
+  test("hidden count clamps at zero around the limit", () => {
+    expect(hiddenSessionCount(5)).toBe(0)
+    expect(hiddenSessionCount(6)).toBe(1)
+    expect(hiddenSessionCount(0)).toBe(0)
+    expect(hiddenSessionCount(12, 5)).toBe(7)
   })
 })
