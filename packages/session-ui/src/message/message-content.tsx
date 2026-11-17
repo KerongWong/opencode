@@ -59,6 +59,7 @@ import type {
 } from "@opencode/client/promise"
 import type { SessionUserActions, SessionUserAttachmentReference, SessionUserComment } from "../actions"
 import { agentLabel } from "./agent-label"
+import { mentionLabels } from "./mention-label"
 import { isInterruptedError } from "../timeline/turn-phase-machine"
 import { attached, typeLabel } from "../components/message-file"
 import {
@@ -820,6 +821,9 @@ function scrollParent(element: HTMLElement) {
 }
 
 function CurrentHighlightedText(props: { text: string; files: PromptAttachment[]; agents: PromptAgentAttachment[] }) {
+  const labels = createMemo(() =>
+    mentionLabels(props.files.flatMap((file) => (file.mention ? [{ path: file.mention.text.slice(1) }] : []))),
+  )
   const segments = createMemo(() => {
     const references = [
       ...props.files.flatMap((file) =>
@@ -863,13 +867,16 @@ function CurrentHighlightedText(props: { text: string; files: PromptAttachment[]
         <Show
           when={segment.type === "link"}
           fallback={
-            <span data-highlight={segment.type}>
+            <span
+              data-highlight={segment.type}
+              title={segment.type === "file" ? segment.text.slice(1) : undefined}
+            >
               <Show
                 when={segment.type && segment.text.startsWith("@")}
                 fallback={<SessionReferenceText text={segment.text} />}
               >
                 <span data-slot="user-message-mention-prefix">@</span>
-                {segment.text.slice(1)}
+                {labels().get(segment.text.slice(1)) ?? segment.text.slice(1)}
               </Show>
             </span>
           }
