@@ -52,6 +52,14 @@ test("tolerates a trailing separator when taking the basename", () => {
   expect(labels.get("/a/b/")).toBe("b")
 })
 
+test("trims a trailing separator before distinguishing same-basename peers", () => {
+  // 契约：带尾部分隔符的路径参与消歧时先 trim（与 basename 提取一致），不会产出带悬空分隔符的 label
+  const labels = mentionLabels([{ path: "/a/b/" }, { path: "/x/b" }])
+
+  expect(labels.get("/a/b/")).toBe("a/b")
+  expect(labels.get("/x/b")).toBe("x/b")
+})
+
 test("keeps the path's own separators in a mixed-separator suffix", () => {
   // 契约：双分隔符混用时后缀保留原分隔符（\ 与 / 不互相转换）
   const labels = mentionLabels([{ path: "C:\\repo/src/app.ts" }, { path: "C:\\other/src/app.ts" }])

@@ -9,8 +9,14 @@ import { getFilename } from "@opencode/util/path"
  * semantics, grouped by basename instead of workspace title.
  */
 export function mentionLabels(paths: readonly { readonly path: string }[]): ReadonlyMap<string, string> {
-  // Segments and the separators between them alternate: `/a/b` → ['', '/', 'a', '/', 'b'].
-  const rows = paths.map((entry) => ({ path: entry.path, parts: entry.path.split(/([\\/])/) }))
+  // Segments and the separators between them alternate: `/a/b` → ['', '/', 'a', '/', 'b']. Trim trailing
+  // separators up front so the window never sees the empty trailing segment (`/a/b/` would otherwise label
+  // as `b/` next to a same-basename peer); a root (`/`, `C:\`) keeps its original form.
+  const rows = paths.map((entry) => {
+    const trimmed = entry.path.replace(/[/\\]+$/, "")
+
+    return { path: entry.path, parts: (trimmed && !/^[A-Za-z]:$/.test(trimmed) ? trimmed : entry.path).split(/([\\/])/) }
+  })
   const suffix = (parts: readonly string[], count: number): string => parts.slice(-(2 * count - 1)).join("")
   const labels = new Map<string, string>()
 
