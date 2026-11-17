@@ -56,8 +56,7 @@ export function transitionAddOpen(state: AddOpenState, event: AddOpenEvent): Add
     }
   }
 
-  if (state.type === "awaiting") {
-    if (event.type === "registered") {
+  if (state.type === "awaiting") {    if (event.type === "registered") {
       const attempt = state.attempt + 1
 
       return {
@@ -87,6 +86,21 @@ export function transitionAddOpen(state: AddOpenState, event: AddOpenEvent): Add
       return {
         state: { type: "failed", attempt: state.attempt },
         effects: [{ type: "watch.stop", attempt: state.attempt }],
+      }
+    }
+
+    return unchanged(state)
+  }
+
+  if (state.type === "failed") {
+    // A failed run never blocks the next Add: a fresh registration starts a new attempt. The
+    // previous watch already stopped when the state left `awaiting`, so only watch.start emits.
+    if (event.type === "registered") {
+      const attempt = state.attempt + 1
+
+      return {
+        state: { type: "awaiting", attempt, key: event.key },
+        effects: [{ type: "watch.start", key: event.key, attempt, timeoutMs: ADD_OPEN_WATCH_TIMEOUT_MS }],
       }
     }
 

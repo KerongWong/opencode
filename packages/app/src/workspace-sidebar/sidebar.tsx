@@ -208,6 +208,8 @@ function WorkspaceSidebarBody(props: { conn: ServerConnection.Any }) {
     )
   })
 
+  onCleanup(() => dispatchAddOpen({ type: "disposed" }))
+
   let scroller: HTMLDivElement | undefined
   let restoreFrame = 0
   let scrollFrame = 0

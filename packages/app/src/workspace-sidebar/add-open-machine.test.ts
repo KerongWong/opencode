@@ -87,6 +87,14 @@ describe("transitionAddOpen", () => {
     expect(result.effects).toEqual([])
   })
 
+  test("a failed run never blocks the next Add", () => {
+    const failed = { type: "failed", attempt: 1 } as const
+    const { state, effects } = transitionAddOpen(failed, { type: "registered", key: "row-b" })
+
+    expect(state).toEqual({ type: "awaiting", attempt: 2, key: "row-b" })
+    expect(effects).toEqual([{ type: "watch.start", key: "row-b", attempt: 2, timeoutMs: ADD_OPEN_WATCH_TIMEOUT_MS }])
+  })
+
   test("disposed returns to idle and stops an active watch", () => {
     const awaiting = transitionAddOpen(INITIAL_ADD_OPEN_STATE, { type: "registered", key: "row-a" }).state
     const { state, effects } = transitionAddOpen(awaiting, { type: "disposed" })
