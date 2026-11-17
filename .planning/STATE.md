@@ -86,6 +86,8 @@ None yet.
 
 ### Blockers/Concerns
 
+- [Phase 06] [上游] 新建会话的 draft 项目目录不存在时（如文件夹选择器带出旧路径），客户端 new-session prepare 过渡永久挂起（startTransition 不 settle，30s 超时 toast 也被堵死，发送零网络请求）。与 v2.2 改动无关（premerge 对照包复现）；上游缺陷，本里程碑不修，测试/验收时用真实目录
+- [Phase 06] 新 profile 默认模型 hy4-flash-free 服务端返回 426（需 OpenCode 1.18.0+）；验证时切到自定义 provider（如 kimi）
 - [全局] 客户端没有 `fs`：归一只做分隔符 / 尾斜杠 / Windows 大小写，符号链接别名会登记成两个工作区（已承认的残余，不假装解决）。
 - [全局] 不得派发 `location.get`（会创建 project 行）；登记流程只用 `session.list`。
 - [全局] `packages/app/src/custom-elements.d.ts` 是符号链接，未开开发者模式时整包 typecheck 失败——用 `bun check --no-script <files>` 做文件级门，并把该缺陷与本次改动区分开。
