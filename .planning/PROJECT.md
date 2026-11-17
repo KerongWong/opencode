@@ -8,18 +8,20 @@
 
 侧栏显示什么，完全由我的登记表决定：我登记哪个本地文件夹，就出现哪一行；同一仓库的两份本地拷贝是两行；移除一行只是把它藏起来，目录、git 状态与会话历史分毫不动，重新登记即回来。
 
-## Current Milestone: v2.0 工作区登记侧栏
+## Current Milestone: v2.1 workspace-sidebar 会话行状态与交互增强
 
-**Goal:** 把侧栏的行源从「会话派生的项目/checkout 分组」换成「用户显式登记的本地文件夹登记表」，并把整块改动收敛成一个自包含模块，使 `upstream/dev` 的触点降到 5 个文件、约 10 行。
+**Goal:** 在 `packages/app/src/workspace-sidebar/` 模块内移植 projects-sidebar 蓝本的相对时间标签与会话状态标记两项 UI 能力，并新增 Add-folder 自动开会话、会话列表折叠两项交互，全部改动收敛在模块内（i18n 英文源串除外）。
 
 **Target features:**
 
-- 客户端登记表（`directory` 为键，`title` / `order` / `removedAt` 为状态），不需要数据库迁移或新协议端点。
-- 侧栏行 = 未移除的登记项；行内会话 = `session.list({ directory })`（精确等值，不含子目录）。
-- 添加 / 重命名 / 移除 / 恢复 / 拖拽排序 / 空态 / 目录不可用态。
-- 上游触点收敛 + 打包隔离（`OPENCODE_CHANNEL=fork`）。
+- 相对时间标签：基于 `session.time.updated`，<60s 显示 "now"，<60m "Nm"，<24h "Nh"，否则 "Nd"；随时间自动刷新（working 状态秒级、其余分钟级，同蓝本 `age()` 双粒度时钟）。
+- 状态标记：行内图标+颜色标记 failed / approval / input / working / unread，优先级 failed > approval/input > working > unread > done/ready；颜色只用 `text-v2-state-fg-*` 语义 token。
+- Add folder 后跳转：sidebar Add 注册成功后自动展开该行，已有会话打开最近一个，否则新建会话并打开。
+- 会话列表折叠：每 project 行默认显示最近 5 条会话，"Show more" 展开全部 / "Show less" 收起，展开态按 project key 持久化（激活 v2 延期的 UIX-01）。
 
-**SPEC:** `docs/designs/workspace-registry-sidebar.md`（13 节裁决文档，含现状审计、存储核验、冲突预算实测）。
+**蓝本（只读参照，不整文件搬移）：** `origin/projects-sidebar` 分支的 `shell/titlebar/projects.tsx` 的 `age()` 与 `inbox-model.ts` 的 InboxStatus 状态机（approval/input/working/failed/done/ready，纯 transition + driver 管定时器 + attempt 防陈旧）。新行组件 `workspace-sidebar/session-row.tsx` 以 `project-session-row.tsx` 为起点改造；不触碰 `shell/titlebar/` 任何 upstream 共享文件。
+
+**SPEC:** v2.1 无独立设计文档；范围与默认值以 milestone 启动时的任务简报为准（四项改动 + 四条待确认项默认值）。
 
 ## Requirements
 
@@ -30,14 +32,16 @@
 - ✓ 成为第四种界面模式，与 Top tabs / Side tabs / Inbox 互不干扰，切换与重启正常 — `65f7866b7e`
 - ✓ 会话行状态：审批 / 等待输入 / 运行中 / 失败 / 完成，以及相对时间、`dir="auto"` 截断
 - ✓ 行拖拽排序、顺序持久化、滚动位置恢复（v2.0 在新模块内重做，行为契约不变）
+- ✓ v2.0 Phase 01/02 的实现（登记表模型 + 侧栏渲染与会话投影）；Phase 03（触点收敛与打包隔离）随 v2.1 启动归档，验收状态见 `.planning/milestones/v2.0-phases/03-seams-and-package/`
 
 ### Active
 
-<!-- v2.0 待实现。ID 与 REQUIREMENTS.md / ROADMAP.md 对应。 -->
+<!-- v2.1 待实现。REQ-ID 在 REQUIREMENTS.md 定义后回填。 -->
 
-- [ ] 登记表数据模型与纯函数（归一、复用、移除、恢复、排序、默认标题）— WS-01、WS-05、WS-06
-- [ ] 登记表驱动的行渲染与会话投影（精确等值、事件增量、空态、不可用态）— WS-02、WS-03、WS-04、WS-07、WS-08、WS-09、WS-11
-- [ ] 上游触点收敛与打包隔离 — WS-10、WS-12
+- [ ] 会话行相对时间标签（now/分/时/天缩写，双粒度自动刷新）— v2.1
+- [ ] 会话行状态标记（failed/approval/input/working/unread，语义 token 颜色 + 优先级裁决）— v2.1
+- [ ] Add folder 后自动展开并打开会话（最近一个或新建）— v2.1
+- [ ] 会话列表折叠（默认 5 条，Show more/less，展开态按 project key 持久化）— v2.1
 
 ### Out of Scope
 
@@ -87,4 +91,4 @@ This document evolves at phase transitions and milestone boundaries.
 3. Audit Out of Scope — reasons still valid?
 4. Update Context with current state
 
-Last updated: 2026-11-13 — v2.0 milestone started (workspace registry sidebar)
+Last updated: 2026-11-17 — v2.1 milestone started (workspace-sidebar 会话行状态与交互增强)；v2.0 phases 归档至 milestones/v2.0-phases/

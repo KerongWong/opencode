@@ -1,22 +1,16 @@
 ---
 gsd_state_version: "1.0"
-milestone: v2.0
-milestone_name: 工作区登记侧栏
-current_phase: 03
-current_phase_name: 上游触点收敛与打包隔离
-current_plan: 1
-status: verifying
-stopped_at: Phase 2 complete, ready to verify Phase 03
-last_updated: "2026-11-14T07:42:24.600Z"
-last_activity: 2026-11-14
-last_activity_desc: Completed quick task 261114-lht (Interface layout 第四模式 + 渠道改名)
-state_head: e5513f38c28d158394f47569e12d13844ee13e40
+milestone: v2.1
+milestone_name: workspace-sidebar 会话行状态与交互增强
+status: planning
+last_updated: "2026-11-17T06:04:22.738Z"
+last_activity: 2026-11-17
 progress:
-  total_phases: 3
-  completed_phases: 2
-  total_plans: 4
-  completed_plans: 4
-  percent: 67
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -31,13 +25,10 @@ See: .planning/PROJECT.md (updated 2026-11-13)
 
 ## Current Position
 
-Phase: 03 of 3 (上游触点收敛与打包隔离)
-Current Plan: 1
-Total Plans in Phase: 1
-Status: Phase complete — ready for verification
-Last activity: 2026-11-14 — Completed quick task 261114-lht: 将 workspace-sidebar 提升为 Interface layout 第四模式，渠道 fork→projects
-
-Progress: [███████░░░] 67%
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-11-17 — Milestone v2.1 started
 
 ## Performance Metrics
 
