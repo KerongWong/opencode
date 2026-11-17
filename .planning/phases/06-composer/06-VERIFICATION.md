@@ -1,7 +1,8 @@
 ---
 phase: 06-composer
-verified: 2026-11-17T00:00:00Z
-status: human_needed
+verified: 2026-11-18T01:35:00Z
+status: passed
+human_accepted: 2026-11-18 — user validated in the OpenCode Test desktop package (channel test, v2.3.0): composer chip shows short name (@Msg0070.java), sent message renders the short name; hover title carries the full path (same change, code-verified). Environment note: the earlier "send spins forever" report traced to an upstream edge case — the draft's project directory (D:\00-pax\01-AndroidProject\02-Spain\pup-android) does not exist on this machine; the new-session prepare transition hangs client-side for a missing directory. Unrelated to Phase 6; not fixed in this milestone.
 score: 4/4 must-haves verified
 covered_files:
   - ".planning/phases/06-composer/06-01-PLAN.md"
