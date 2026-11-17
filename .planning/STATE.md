@@ -2,20 +2,19 @@
 gsd_state_version: "1.0"
 milestone: v2.2
 milestone_name: dsh 交互对齐：@ 引用短路径与会话列表水位线
-current_phase: 7
+current_phase: 07
 current_phase_name: 会话列表水位线
-status: planning
-stopped_at: Phase 06 complete, ready to plan Phase 7
-last_updated: "2026-11-17T17:36:35.545Z"
+status: executing
+stopped_at: Completed 07-01-PLAN.md
+last_updated: "2026-11-17T18:05:54.116Z"
 last_activity: 2026-11-18
-last_activity_desc: Phase 06 complete, transitioned to Phase 7
-state_head: 05b39afb33eeed375707014d40ffdebeb44c9a9a
+last_activity_desc: Phase 07 execution started
+state_head: a69878cf17b341a34bb6e52107d9ab336ff92dc7
 progress:
   total_phases: 2
   completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
-  percent: 50
+  total_plans: 4
+  completed_plans: 3
 ---
 
 # Project State
@@ -25,15 +24,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-11-17, v2.2 启动)
 
 **Core value:** 侧栏显示什么完全由我的登记表决定：登记哪个本地文件夹就出现哪一行；同一仓库两份拷贝是两行；移除只是藏起来，目录、git 与会话分毫不动，重新登记即回来。
-**Current focus:** Phase 06 — @ 引用短路径（composer 与已发消息）
+**Current focus:** Phase 07 — 会话列表水位线
 **SPEC:** v2.2 无独立设计文档；范围与默认值以 milestone 启动时的任务简报 + 事实复核结论为准（dsh 只读参照）。
 
 ## Current Position
 
-Phase: 7 — 会话列表水位线
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-11-18 — Phase 06 complete, transitioned to Phase 7
+Phase: 07 (会话列表水位线) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
+Last activity: 2026-11-18 — Phase 07 execution started
 
 ## Performance Metrics
 
@@ -65,6 +64,7 @@ Last activity: 2026-11-18 — Phase 06 complete, transitioned to Phase 7
 |------|----------|-------|-------|
 | Phase 06 P01 | 12min | 2 tasks | 4 files |
 | Phase 06 P02 | 15min | 2 tasks | 3 files |
+| Phase 07 P01 | 8min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -79,6 +79,8 @@ Recent decisions affecting current work:
 - [Roadmap]: 事实复核（2026-11-17）确认任务简报 A 项（消息级撤销+复制入口）已存在于 App 端，剔除出范围并记入 Out of Scope
 - [Phase 06]: mentionLabels 纯函数落 session-ui（./mention-label 导出）；basename 分组移植 dsh 段窗口语义；PromptAttachment 无 path 字段，labels 作用域由 file.mention.text.slice(1) 派生
 - [Phase 06]: [Phase 06]: composer chip 渲染缩短以 original.content 为 parse 真源（渲染缩短下 textContent 不可信）；file 身份匹配迁移到 dataset，label 比较只保留非 file 类型
+- [Phase 07]: 水位 store 用 Record<string, number | undefined>（setRowWorking 惯例），undefined 删 key；Show less 与折叠重置共用删 key = 回基线路径
+- [Phase 07]: RED 证据：stub 导出 + bun:test 输出转 TAP 过 tdd-red-evidence（RED_EVIDENCE_OK）；workflow.tdd_mode=false 按项目 RED-commit 惯例执行
 
 ### Pending Todos
 
@@ -112,8 +114,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-11-17T14:47:20.503Z
-Stopped at: Phase 06 complete, ready to plan Phase 7
+Last session: 2026-11-17T18:05:54.076Z
+Stopped at: Completed 07-01-PLAN.md
 Resume file: None
 
 ## Operator Next Steps

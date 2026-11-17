@@ -1,0 +1,9 @@
+{
+  "command": "bun test --conditions=solid --isolate --preload ../ui/test/solid-jsx.ts --preload ./happydom.ts ./src/workspace-sidebar/sessions.test.ts",
+  "exitCode": 1,
+  "output": "TAP version 13\n1..9\nnot ok 1 - watermark > the first click lands on the baseline of five (COLL-03)\nnot ok 2 - watermark > each click raises the watermark by five\nnot ok 3 - watermark > exactly five remaining expands everything in one step\nnot ok 4 - watermark > fewer than five remaining expands everything in one step too\nnot ok 5 - watermark > a fully expanded row never drops on further clicks\nnot ok 6 - watermark > a total at or under the baseline reads as fully shown and never moves\nnot ok 7 - watermark > show less returns to the baseline in one step, not stepwise\nnot ok 8 - watermark > remaining hidden counts what sits below the watermark, clamped at zero\nnot ok 9 - watermark > the watermark slices the visible prefix",
+  "targetTest": "watermark > the first click lands on the baseline of five (COLL-03)",
+  "targetFile": "packages/app/src/workspace-sidebar/sessions.test.ts",
+  "expected": "RED: watermark table tests fail against stub implementations",
+  "actual": "9 failing watermark tests"
+}

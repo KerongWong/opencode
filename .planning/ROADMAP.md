@@ -39,11 +39,11 @@ Plans:
   2. 每组列表前 50 条内的 running / 待交互 / 当前会话 / 未读完成会话无需点击即可见；水位在 render 期单调提升，不因这些会话完成而回落（同次渲染内不降低）
   3. 用户折叠工作区行再展开后，该行的会话列表回到基线水位 5（水位被重置）
   4. 水位为内存态：刷新/重新加载应用后所有行回到基线水位 5，且不再向 `workspace-sidebar-ui.v1` 写入或读取展开持久化状态（替换 v2.1 COLL-02 语义）
-**Plans**: 2 plans
+**Plans**: 1/2 plans executed
 **UI hint**: yes
 
 Plans:
-- [ ] 07-01-PLAN.md — 水位纯函数（基线/+5/剩余≤5一步全展开/Show less 回基线）+ 内存 store + 按钮重接线 + 折叠重置（COLL-03, COLL-05）
+- [x] 07-01-PLAN.md — 水位纯函数（基线/+5/剩余≤5一步全展开/Show less 回基线）+ 内存 store + 按钮重接线 + 折叠重置（COLL-03, COLL-05）
 - [ ] 07-02-PLAN.md — 注意力自动抬升（render 期单调，前 50 条内 working/待交互/当前/未读完成）+ 移除 revealed 持久化层（COLL-04, COLL-05）
 
 ## Progress
@@ -51,4 +51,4 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 6. @ 引用短路径 | 2/2 | Complete    | 2026-11-18 |
-| 7. 会话列表水位线 | 0/TBD | Not started | - |
+| 7. 会话列表水位线 | 1/2 | In Progress | - |
