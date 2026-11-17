@@ -97,6 +97,61 @@ const editor = (...nodes: Node[]) => {
 
 const prompt = (...parts: ComposerPrompt): ComposerPrompt => parts
 
+// A rendered file pill shows a shortened label (basename or distinguishing suffix) while the prompt part keeps
+// the full @path, so a file mention cannot be identified by its label.
+const shortenedFileMention = (label: string, path: string) => {
+  const element = pill()
+  element.textContent = label
+  element.dataset.path = path
+
+  return element
+}
+
+test.each<{ name: string; dom: () => HTMLElement; prompt: ComposerPrompt; matches: boolean }>([
+  {
+    name: "a file pill showing its basename",
+    dom: () => editor(shortenedFileMention("@app.tsx", "src/app.tsx")),
+    prompt: prompt({ type: "file" as const, path: "src/app.tsx", content: "@src/app.tsx", start: 0, end: 0 }),
+    matches: true,
+  },
+  {
+    name: "file pills showing distinguishing suffixes",
+    dom: () =>
+      editor(
+        shortenedFileMention("@a/app.tsx", "pkg/a/app.tsx"),
+        shortenedFileMention("@b/app.tsx", "pkg/b/app.tsx"),
+      ),
+    prompt: prompt(
+      { type: "file" as const, path: "pkg/a/app.tsx", content: "@pkg/a/app.tsx", start: 0, end: 0 },
+      { type: "file" as const, path: "pkg/b/app.tsx", content: "@pkg/b/app.tsx", start: 0, end: 0 },
+    ),
+    matches: true,
+  },
+  {
+    name: "a shortened file pill with another target",
+    dom: () => editor(shortenedFileMention("@app.tsx", "src/app.tsx")),
+    prompt: prompt({ type: "file" as const, path: "other/app.tsx", content: "@other/app.tsx", start: 0, end: 0 }),
+    matches: false,
+  },
+  {
+    name: "a file pill that kept the full path label",
+    dom: () =>
+      editor(
+        (() => {
+          const element = pill()
+          element.textContent = "@src/app.tsx"
+          element.dataset.path = "src/app.tsx"
+
+          return element
+        })(),
+      ),
+    prompt: prompt({ type: "file" as const, path: "src/app.tsx", content: "@src/app.tsx", start: 0, end: 0 }),
+    matches: true,
+  },
+])("matches shortened file pills against the prompt: $name", (row) => {
+  expect(editorMatchesPrompt(row.dom(), row.prompt)).toBe(row.matches)
+})
+
 test.each<{ name: string; dom: () => HTMLElement; prompt: ComposerPrompt; matches: boolean }>([
   { name: "one text node", dom: () => editor(text("hello")), prompt: prompt(part("hello")), matches: true },
   {
