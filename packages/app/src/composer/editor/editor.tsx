@@ -639,7 +639,7 @@ function renderComposerEditor(editor: HTMLDivElement, prompt: ComposerPrompt) {
   selection?.addRange(range)
 }
 
-function parseComposerEditor(editor: HTMLDivElement) {
+export function parseComposerEditor(editor: HTMLDivElement) {
   const parts: Exclude<ComposerPrompt[number], ComposerAttachment>[] = []
   let buffer = ""
   let position = 0
@@ -695,8 +695,10 @@ function parseComposerEditor(editor: HTMLDivElement) {
     }
 
     // The pill shows a shortened label, so read the file content back from the stored part: the wire still
-    // carries the full @path. Hand-built DOM without an original keeps the textContent behavior.
-    const fileContent = original?.type === "file" ? original.content : content
+    // carries the full @path. A pill without a stored part (a node native undo reinserted) keeps its full path
+    // in dataset.path, which survives cloning; only a hand-built pill with neither falls back to the label.
+    const fileContent =
+      original?.type === "file" ? original.content : element.dataset.path ? "@" + element.dataset.path : content
     const parsed: ComposerFilePart = {
       type: "file",
       path: element.dataset.path ?? fileContent.slice(1),
