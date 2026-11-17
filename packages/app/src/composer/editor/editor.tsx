@@ -50,7 +50,7 @@ import type {
 } from "../types"
 import type { ComposerEditorModel, ComposerSelectControl } from "./interaction"
 import { isAttachment, promptLength } from "../prompt-parts"
-import { editorMatchesPrompt, getCursorPosition, isEditorDomBlank, isPromptInlineBlank } from "./dom"
+import { composerClipboardText, editorMatchesPrompt, getCursorPosition, isEditorDomBlank, isPromptInlineBlank } from "./dom"
 import {
   INITIAL_EDITOR_SYNC_STATE,
   INPUT_PARSED,
@@ -406,6 +406,21 @@ export function ComposerEditor(props: ComposerEditorProps) {
               }}
               onKeyUp={updateCursor}
               onPointerUp={updateCursor}
+              // A file pill's text is its shortened label; copies carry the full @path from its dataset so a
+              // paste back into the draft (or anywhere else) stays a resolvable reference.
+              onCopy={(event) => {
+                const selection = window.getSelection()
+
+                if (event.defaultPrevented || !event.clipboardData || !selection || selection.isCollapsed) return
+                const ranges = Array.from({ length: selection.rangeCount }, (_, index) => selection.getRangeAt(index))
+
+                if (!ranges.every((range) => event.currentTarget.contains(range.commonAncestorContainer))) return
+                const text = composerClipboardText(event.currentTarget, ranges)
+
+                if (text === undefined) return
+                event.preventDefault()
+                event.clipboardData.setData("text/plain", text)
+              }}
               onPaste={(event) => {
                 props.controller.onPaste(event)
                 // Programmatic multiline insertion does not reliably reveal the caret.

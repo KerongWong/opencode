@@ -68,6 +68,29 @@ export function isPromptInlineBlank(prompt: ComposerPrompt) {
   return true
 }
 
+/**
+ * The selection's plain text with file pills rewritten to their full @path, or undefined when the selection
+ * holds no file pill, so the caller keeps the browser's copy. A pill's DOM text is its shortened label; copied
+ * verbatim it would put an unresolvable @basename on the clipboard and, pasted back, into the wire text.
+ */
+export function composerClipboardText(root: HTMLElement, ranges: readonly Range[]) {
+  const pills = Array.from(root.querySelectorAll('[data-mention="file"], [data-mention="reference"]'))
+
+  if (!ranges.some((range) => pills.some((pill) => range.intersectsNode(pill)))) return
+  const container = document.createElement("div")
+  container.style.cssText = "position:fixed;top:0;left:-100000px"
+  ranges.forEach((range) => container.append(range.cloneContents()))
+  container.querySelectorAll<HTMLElement>('[data-mention="file"], [data-mention="reference"]').forEach((pill) => {
+    pill.replaceWith(pill.dataset.path ? "@" + pill.dataset.path : (pill.textContent ?? ""))
+  })
+  // `innerText` needs layout to keep line breaks.
+  root.append(container)
+  const text = container.innerText
+  container.remove()
+
+  return text
+}
+
 function matchNode(node: Node, prompt: ComposerPrompt): boolean {
   if (node instanceof Text) return matchText(node.data, prompt)
 

@@ -143,16 +143,28 @@ function sessionReferenceTarget(root: HTMLElement, target: EventTarget | null) {
   return reference && root.contains(reference) ? reference : undefined
 }
 
-/** Undefined when the selection holds no session reference, so the caller keeps its usual copy. */
+/** Undefined when the selection holds no session reference or file mention, so the caller keeps its usual copy. */
 export function sessionReferenceClipboardText(root: HTMLElement, ranges: readonly Range[]) {
   const references = Array.from(root.querySelectorAll("[data-session-reference]"))
+  const files = Array.from(root.querySelectorAll('[data-highlight="file"][data-path]'))
 
-  if (!ranges.some((range) => references.some((reference) => range.intersectsNode(reference)))) return
+  if (
+    !ranges.some(
+      (range) =>
+        references.some((reference) => range.intersectsNode(reference)) ||
+        files.some((file) => range.intersectsNode(file)),
+    )
+  )
+    return
   const container = document.createElement("div")
   container.style.cssText = "position:fixed;top:0;left:-100000px"
   ranges.forEach((range) => container.append(sessionReferenceRange(range).cloneContents()))
   container.querySelectorAll<HTMLElement>("[data-session-reference]").forEach((reference) => {
     reference.replaceWith(reference.dataset.sessionReference ?? "")
+  })
+  // A file mention shows a shortened label; its full path rides in data-path so copies stay resolvable.
+  container.querySelectorAll<HTMLElement>('[data-highlight="file"][data-path]').forEach((file) => {
+    file.replaceWith("@" + file.dataset.path!)
   })
   // `innerText` needs layout to keep line breaks.
   root.append(container)
@@ -162,15 +174,15 @@ export function sessionReferenceClipboardText(root: HTMLElement, ranges: readonl
   return text
 }
 
-/** References copy atomically even when the selection starts or ends inside their displayed title. */
+/** References and file mentions copy atomically even when the selection starts or ends inside their displayed label. */
 export function sessionReferenceRange(range: Range) {
   const start = range.startContainer instanceof Element ? range.startContainer : range.startContainer.parentElement
 
   const end = range.endContainer instanceof Element ? range.endContainer : range.endContainer.parentElement
 
-  const first = start?.closest("[data-session-reference]")
+  const first = start?.closest("[data-session-reference], [data-highlight='file'][data-path]")
 
-  const last = end?.closest("[data-session-reference]")
+  const last = end?.closest("[data-session-reference], [data-highlight='file'][data-path]")
 
   if (!first && !last) return range
   const selection = range.cloneRange()

@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test"
 import type { ComposerPrompt } from "../types"
-import { editorMatchesPrompt, getCursorPosition, isEditorDomBlank, isPromptInlineBlank, setCursorPosition } from "./dom"
+import { composerClipboardText, editorMatchesPrompt, getCursorPosition, isEditorDomBlank, isPromptInlineBlank, setCursorPosition } from "./dom"
 
 const br = () => document.createElement("br")
 
@@ -167,6 +167,25 @@ test.each<{ name: string; dom: () => HTMLElement; prompt: ComposerPrompt; matche
   },
 ])("matches shortened file pills against the prompt: $name", (row) => {
   expect(editorMatchesPrompt(row.dom(), row.prompt)).toBe(row.matches)
+})
+
+test("copied file pills contribute their full path, not the shortened label", () => {
+  const container = document.createElement("div")
+  document.body.appendChild(container)
+  container.append(text("see "), shortenedFileMention("@app.tsx", "src/app.tsx"), text(" now"))
+  const range = document.createRange()
+  range.selectNodeContents(container)
+  expect(composerClipboardText(container, [range])).toBe("see @src/app.tsx now")
+  container.remove()
+})
+
+test("a selection without file pills keeps the browser's copy", () => {
+  const container = document.createElement("div")
+  container.append(text("plain"))
+  const range = document.createRange()
+  range.selectNodeContents(container)
+  expect(composerClipboardText(container, [range])).toBeUndefined()
+  container.remove()
 })
 
 test.each<{ name: string; dom: () => HTMLElement; prompt: ComposerPrompt; matches: boolean }>([

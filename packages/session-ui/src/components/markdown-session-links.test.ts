@@ -128,3 +128,15 @@ test("copied text writes each selected reference as its source instead of its ti
   expect(sessionReferenceClipboardText(root, [plain])).toBeUndefined()
   root.remove()
 })
+
+test("copied file mentions write their full path instead of the shortened label", () => {
+  const root = document.createElement("div")
+  document.body.append(root)
+  root.innerHTML = `<p>Edit <span data-highlight="file" data-path="src/app.tsx" title="src/app.tsx"><span data-slot="user-message-mention-prefix">@</span>app.tsx</span> now.</p>`
+  const range = document.createRange()
+  range.selectNodeContents(root.querySelector("p")!)
+  expect(sessionReferenceClipboardText(root, [range])).toBe("Edit @src/app.tsx now.")
+  range.selectNodeContents(root.querySelector("[data-highlight]")!)
+  expect(sessionReferenceClipboardText(root, [range])).toBe("@src/app.tsx")
+  root.remove()
+})

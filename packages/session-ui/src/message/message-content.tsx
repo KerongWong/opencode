@@ -869,6 +869,7 @@ function CurrentHighlightedText(props: { text: string; files: PromptAttachment[]
           fallback={
             <span
               data-highlight={segment.type}
+              data-path={segment.type === "file" ? segment.text.slice(1) : undefined}
               title={segment.type === "file" ? segment.text.slice(1) : undefined}
             >
               <Show
