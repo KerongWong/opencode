@@ -1,19 +1,16 @@
 ---
 gsd_state_version: "1.0"
-milestone: v2.1
-milestone_name: workspace-sidebar 会话行状态与交互增强
-status: Awaiting next milestone
-stopped_at: Phase 05 complete — all phases complete
-last_updated: "2026-11-17T07:46:44.533Z"
+milestone: v2.2
+milestone_name: dsh 交互对齐：@ 引用短路径与会话列表水位线
+status: planning
+last_updated: "2026-11-17T12:14:34.310Z"
 last_activity: 2026-11-17
-last_activity_desc: Milestone v2.1 completed and archived
-state_head: 08b75669abd4ce7214d520dd1bbcec36c6d6adb7
 progress:
-  total_phases: 2
-  completed_phases: 2
-  total_plans: 2
-  completed_plans: 2
-current_phase: 05
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -28,10 +25,11 @@ See: .planning/PROJECT.md (updated 2026-11-13)
 
 ## Current Position
 
-Phase: Milestone v2.1 complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-11-17 — Milestone v2.1 completed and archived
+Status: Defining requirements
+Last activity: 2026-11-17 — Milestone v2.2 started
+
 
 ## Performance Metrics
 

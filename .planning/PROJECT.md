@@ -8,26 +8,25 @@
 
 侧栏显示什么，完全由我的登记表决定：我登记哪个本地文件夹，就出现哪一行；同一仓库的两份本地拷贝是两行；移除一行只是把它藏起来，目录、git 状态与会话历史分毫不动，重新登记即回来。
 
-## Current Milestone: v2.1 workspace-sidebar 会话行状态与交互增强
+## Current Milestone: v2.2 dsh 交互对齐：@ 引用短路径与会话列表水位线
 
-**Goal:** 在 `packages/app/src/workspace-sidebar/` 模块内移植 projects-sidebar 蓝本的相对时间标签与会话状态标记两项 UI 能力，并新增 Add-folder 自动开会话、会话列表折叠两项交互，全部改动收敛在模块内（i18n 英文源串除外）。
+**Goal:** 对齐 dsh（`D:\01-project\02-opensource\deepseek-harness`，只读参照）的两项交互——App composer 与已发消息中的 @ 文件引用短路径显示（wire/正文层保持全路径，缩短只发生在渲染层），以及 workspace-sidebar 会话列表从二元持久化展开改为 dsh 式分批水位线（内存态、+5 增量、剩余 ≤5 一步全展开、注意力自动抬升、折叠行重置）。
 
 **Target features:**
 
-- 相对时间标签：基于 `session.time.updated`，<60s 显示 "now"，<60m "Nm"，<24h "Nh"，否则 "Nd"；随时间自动刷新（working 状态秒级、其余分钟级，同蓝本 `age()` 双粒度时钟）。
-- 状态标记：行内图标+颜色标记 failed / approval / input / working / unread，优先级 failed > approval/input > working > unread > done/ready；颜色只用 `text-v2-state-fg-*` 语义 token。
-- Add folder 后跳转：sidebar Add 注册成功后自动展开该行，已有会话打开最近一个，否则新建会话并打开。
-- 会话列表折叠：每 project 行默认显示最近 5 条会话，"Show more" 展开全部 / "Show less" 收起，展开态按 project key 持久化（激活 v2 延期的 UIX-01）。
+- **MENT-01 @ 引用短路径（composer）**：输入框内 file mention chip 显示 basename（同名冲突时最短区分后缀），hover/title 保留全路径；提交序列化仍写全路径进正文与 wire（对齐 dsh `Occurrence`/`serializeReference` 双轨策略）。
+- **MENT-02 @ 引用短路径（已发消息）**：session-ui 渲染 `data-highlight="file"` segment 时显示 basename（重名时最短区分后缀），title/hover 为原始全路径；正文与 wire 不变。
+- **COLL-01 会话列表水位线**：替换二元 `revealed: string[]` 持久化展开为每组内存数字水位：基线 5，点击 +5，剩余 ≤5 一步到全展开并变 "Show less"（一步回基线）；running/待交互/当前/未读完成（index ≤ 50 内）自动抬水位且只升不降；折叠工作区行重置该行水位；不持久化（卸载即重置，对齐 dsh）。
 
-**蓝本（只读参照，不整文件搬移）：** `origin/projects-sidebar` 分支的 `shell/titlebar/projects.tsx` 的 `age()` 与 `inbox-model.ts` 的 InboxStatus 状态机（approval/input/working/failed/done/ready，纯 transition + driver 管定时器 + attempt 防陈旧）。新行组件 `workspace-sidebar/session-row.tsx` 以 `project-session-row.tsx` 为起点改造；不触碰 `shell/titlebar/` 任何 upstream 共享文件。
+**事实复核修正（2026-11-17，动手前扫描）：** 任务简报原定 A（消息级"撤销+复制"入口）**不成立**——App 端（session-ui `message-content.tsx` 菜单 + App `region.tsx`/`revert.ts` 接线 + e2e 覆盖）已存在完整 Revert/Undo/Copy 入口，故 A 剔除并记入 Out of Scope（理由：能力已存在，重复实现违反最小改动）。
 
-**SPEC:** v2.1 无独立设计文档；范围与默认值以 milestone 启动时的任务简报为准（四项改动 + 四条待确认项默认值）。
+**蓝本（只读参照，不整文件搬移）：** dsh `packages/client/ui-conversation`（`apply.ts` Occurrence 双轨、`draft.ts`）、`packages/client/ui-reference`（`user-text-rules.ts` 的 basename 提取 + `FileReference.tsx` title=raw）、`packages/client/ui-workspace/src/client/rows/WorkspaceBrowser.tsx`（水位语义）与 `path-suffix.ts`（`distinguishingPathSuffixes()`）。只移植纯函数与交互语义，不 fork dsh 基础设施。
 
-**Status (2026-11-17):** shipped — Phase 4/5 完成，审计 passed（8/8 需求），归档至 `.planning/milestones/v2.1-*`。
+**SPEC:** v2.2 无独立设计文档；范围与默认值以 milestone 启动时的任务简报 + 事实复核结论为准。
 
 ## Next Milestone Goals
 
-<!-- 下一个 milestone 由 /gsd-new-milestone 重新定义；候选种子见 REQUIREMENTS 归档的 v2 延期项（UIX-02 真分页、UIX-03 行级操作、STY-01、STAT-04）。 -->
+<!-- 下一个 milestone 由 /gsd-new-milestone 重新定义。 -->
 
 （待定）
 
@@ -63,6 +62,8 @@
 - 自动跟随目录改名 — 改名后进入「不可用」态，由用户重新登记
 - 冷启动自动打开最近修改的会话 — 设计文档中的第三提交从未落地，先显式排除
 - 修复 `@opencode/ui/activity-ring` 的无 layer CSS 根因 — 会改变所有调用点观感，当前环境无法验证
+- **消息级"撤销+复制"入口（v2.2 任务简报原 A 项）** — 事实复核确认 App 端已存在完整实现：session-ui `message-content.tsx` 的 Revert to here/Undo 菜单与 Copy 按钮、App `region.tsx`/`session/revert.ts` 接线、`e2e/regression/session-header.spec.ts` 覆盖。能力已存在，重复实现违反最小改动原则
+- **dsh `distinguishingPathSuffixes()` 的全局 workspace 消歧** — dsh 该函数服务 WorkspacePicker 同名工作区消歧；v2.2 仅在同一 composer draft/同一条消息内做重名消歧，不引入全局消歧
 
 ## Context
 
@@ -103,4 +104,4 @@ This document evolves at phase transitions and milestone boundaries.
 3. Audit Out of Scope — reasons still valid?
 4. Update Context with current state
 
-Last updated: 2026-11-17 — v2.1 Phase 4/5 完成（会话行状态/时间标签 + Add-folder 跳转 + 会话折叠）
+Last updated: 2026-11-17 — v2.2 启动（dsh 交互对齐：@ 引用短路径与会话列表水位线）
