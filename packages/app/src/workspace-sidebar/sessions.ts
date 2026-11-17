@@ -4,6 +4,7 @@ import { createStore, produce } from "solid-js/store"
 import type { ServerConnection } from "@/runtime/server/registry"
 import type { ServerCtx } from "@/runtime/server/runtime"
 import { directoryKey, visible, type HostPlatform, type WorkspaceEntry } from "./registry"
+import type { SessionRowStatus } from "./session-status"
 
 export type RowKey = string
 
@@ -120,6 +121,16 @@ export function remainingHidden(total: number, watermark: number) {
 /** COLL-03: the on-screen prefix of a row's list. Pure so the cutoff is unit-testable. */
 export function shownByWatermark<T>(sessions: readonly T[], watermark: number) {
   return sessions.slice(0, watermark)
+}
+
+/** COLL-04 stub: the attention lift lands in GREEN (07-02). */
+export function requiredWatermark(_index: number, _status: SessionRowStatus, _isActive: boolean): number {
+  throw new Error("not implemented")
+}
+
+/** COLL-04 stub: the monotonic raise half lands in GREEN (07-02). */
+export function raisedWatermark(_current: number, _required: number): number {
+  throw new Error("not implemented")
 }
 
 const SESSION_LIST_LIMIT = 50

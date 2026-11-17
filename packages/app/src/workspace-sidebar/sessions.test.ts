@@ -9,12 +9,15 @@ import {
   needsAvailabilityProbe,
   nextWatermark,
   queryDirectoryFor,
+  raisedWatermark,
   remainingHidden,
+  requiredWatermark,
   rowKeyFor,
   rowKeyOf,
   serverSpelling,
   sessionsOf,
   shownByWatermark,
+  SESSION_WATERMARK_AUTO_MAX,
   SESSION_WATERMARK_BASE,
 } from "./sessions"
 import type { RowSessions } from "./sessions"
@@ -337,5 +340,49 @@ describe("watermark", () => {
     expect(shownByWatermark(list(20), 5).map((item) => item.id)).toEqual(["s0", "s1", "s2", "s3", "s4"])
     expect(shownByWatermark(list(20), 20)).toHaveLength(20)
     expect(shownByWatermark([], 5)).toEqual([])
+  })
+})
+
+describe("requiredWatermark", () => {
+  test("every attention status inside the ceiling raises the watermark to just past the session", () => {
+    for (const status of ["working", "approval", "input", "unread"] as const) {
+      expect(requiredWatermark(0, status, false)).toBe(1)
+      expect(requiredWatermark(7, status, false)).toBe(8)
+      expect(requiredWatermark(49, status, false)).toBe(50)
+    }
+  })
+
+  test("the ceiling boundary is inclusive: index 50 raises, index 51 does not", () => {
+    expect(requiredWatermark(SESSION_WATERMARK_AUTO_MAX, "working", false)).toBe(SESSION_WATERMARK_AUTO_MAX + 1)
+    expect(requiredWatermark(SESSION_WATERMARK_AUTO_MAX + 1, "working", false)).toBe(0)
+    expect(requiredWatermark(SESSION_WATERMARK_AUTO_MAX + 1, "unread", false)).toBe(0)
+  })
+
+  test("the active session raises whatever its status, inside the ceiling", () => {
+    expect(requiredWatermark(12, "idle", true)).toBe(13)
+    expect(requiredWatermark(12, "failed", true)).toBe(13)
+  })
+
+  test("failed and idle sessions that are not active raise nothing", () => {
+    expect(requiredWatermark(3, "failed", false)).toBe(0)
+    expect(requiredWatermark(3, "idle", false)).toBe(0)
+  })
+
+  test("an active session past the ceiling still raises nothing", () => {
+    expect(requiredWatermark(SESSION_WATERMARK_AUTO_MAX + 1, "idle", true)).toBe(0)
+  })
+})
+
+describe("raisedWatermark", () => {
+  test("a higher requirement wins", () => {
+    expect(raisedWatermark(5, 12)).toBe(12)
+  })
+
+  test("a lower requirement never drops the watermark", () => {
+    expect(raisedWatermark(12, 5)).toBe(12)
+  })
+
+  test("an equal requirement returns the current value, so the driver can skip the write", () => {
+    expect(raisedWatermark(12, 12)).toBe(12)
   })
 })

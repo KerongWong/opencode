@@ -1,0 +1,10 @@
+{
+  "command": "bun test --conditions=solid --isolate --preload ../ui/test/solid-jsx.ts --preload ./happydom.ts ./src/workspace-sidebar/sessions.test.ts",
+  "exitCode": 1,
+  "output": "TAP version 13\nnot ok 1 requiredWatermark > every attention status inside the ceiling raises the watermark to just past the session\nnot ok 2 requiredWatermark > the ceiling boundary is inclusive: index 50 raises, index 51 does not\nnot ok 3 requiredWatermark > the active session raises whatever its status, inside the ceiling\nnot ok 4 requiredWatermark > failed and idle sessions that are not active raise nothing\nnot ok 5 requiredWatermark > an active session past the ceiling still raises nothing\nnot ok 6 raisedWatermark > a higher requirement wins\nnot ok 7 raisedWatermark > a lower requirement never drops the watermark\nnot ok 8 raisedWatermark > an equal requirement returns the current value, so the driver can skip the write\n1..8",
+  "targetTest": "requiredWatermark > the ceiling boundary is inclusive: index 50 raises, index 51 does not",
+  "targetFile": "packages/app/src/workspace-sidebar/sessions.test.ts",
+  "expected": "requiredWatermark/raisedWatermark COLL-04 assertions to fail against the not-implemented stub",
+  "actual": "8 target tests failed on the not-implemented stub, 31 pre-existing tests passed",
+  "semanticAssessment": "Target tests fail because the COLL-04 feature is a throwing stub — the expected missing-feature failure, not a fixture/load error."
+}
