@@ -63,7 +63,7 @@ import { Permission } from "../permission.js"
 import { Reference } from "../reference.js"
 import { WebSearch } from "../websearch.js"
 import { Ripgrep } from "../ripgrep.js"
-import { Schedule } from "../schedule.js"
+import { Automation } from "../automation.js"
 import { Session } from "../session.js"
 import { SessionCompaction } from "../session/compaction.js"
 import { SessionInstructions } from "../session/instructions.js"
@@ -87,7 +87,7 @@ import { QuestionTool } from "../tool/plugin/question.js"
 import { ReadToolFileSystem } from "../tool/read-filesystem.js"
 import { ReadTool } from "../tool/plugin/read.js"
 import { ArtifactTools } from "../tool/plugin/artifact.js"
-import { ScheduleTools } from "../tool/plugin/schedule.js"
+import { AutomationTools } from "../tool/plugin/automation.js"
 import { ShellTool } from "../tool/plugin/shell.js"
 import { SkillTool } from "../tool/plugin/skill.js"
 import { SubagentTool } from "../tool/plugin/subagent.js"
@@ -102,6 +102,7 @@ import { AgentPlugin } from "./agent.js"
 import BrowserPlugin from "@opencode/plugin-browser"
 import { CommandPlugin } from "./command.js"
 import { IdentityPlugin } from "./identity.js"
+import { ForkNoticePlugin } from "./fork-notice.js"
 import { PlanPlugin } from "./plan.js"
 import { GoalPlugin } from "./goal.js"
 import { ModelsDevPlugin } from "./models-dev.js"
@@ -160,7 +161,7 @@ const services = [
   Reference.Service,
   WebSearch.Service,
   Ripgrep.Service,
-  Schedule.Service,
+  Automation.Service,
   Session.Service,
   SessionCompaction.Service,
   SessionInstructions.Service,
@@ -222,7 +223,7 @@ export const requirements = LayerNode.group([
   Reference.node,
   WebSearch.node,
   Ripgrep.node,
-  Schedule.node,
+  Automation.node,
   Session.node,
   SessionCompaction.node,
   SessionInstructions.node,
@@ -251,6 +252,7 @@ const pre = [
   WellKnownPlugin.Plugin,
   VcsGitPlugin.Plugin,
   AgentPlugin.Plugin,
+  ForkNoticePlugin.Plugin,
   PlanPlugin.Plugin,
   CommandPlugin.Plugin,
   GoalPlugin.Plugin,
@@ -274,7 +276,7 @@ const pre = [
   QuestionTool.Plugin,
   ReadTool.Plugin,
   ArtifactTools.Plugin,
-  ScheduleTools.Plugin,
+  AutomationTools.Plugin,
   ShellTool.Plugin,
   SkillTool.Plugin,
   SubagentTool.Plugin,
