@@ -85,9 +85,11 @@ export function SessionRow(props: {
     const sessionID = props.session.id
     const project = projectSettingsKey(serverCtx.sdk.scope, props.session.projectID)
     const requests = sessionRequests(serverCtx, sessionID, true, settings.permissions.autoApproves(project))
+
     const busy = [...new Set([sessionID, ...serverCtx.data.session.family(sessionID)])].some((id) =>
       sessionBusy(serverCtx.data, id),
     )
+
     const unread = serverCtx.notification.session.unread(sessionID, props.session)
     const failed = (serverCtx.data.session.get(sessionID) ?? props.session)?.outcome === "failed"
 

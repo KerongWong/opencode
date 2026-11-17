@@ -13,10 +13,15 @@ export function sessionRowStatus(input: {
   unread: boolean
 }): SessionRowStatus {
   if (input.failed) return "failed"
+
   if (input.permission) return "approval"
+
   if (input.form) return "input"
+
   if (input.busy) return "working"
+
   if (input.unread) return "unread"
+
   return "idle"
 }
 
@@ -27,8 +32,11 @@ export function elapsedBucket(updatedMs: number, nowMs: number): Elapsed {
   const seconds = Math.max(0, Math.floor((nowMs - updatedMs) / 1000))
 
   if (seconds < 60) return { kind: "now" }
+
   if (seconds < 3_600) return { kind: "minutes", count: Math.floor(seconds / 60) }
+
   if (seconds < 86_400) return { kind: "hours", count: Math.floor(seconds / 3_600) }
+
   return { kind: "days", count: Math.floor(seconds / 86_400) }
 }
 
@@ -40,9 +48,14 @@ export type StatusMark =
 
 export function statusMark(status: SessionRowStatus): StatusMark {
   if (status === "failed") return { kind: "icon", icon: "close", className: "text-v2-state-fg-danger" }
+
   if (status === "approval") return { kind: "icon", icon: "circle-exclamation", className: "text-v2-state-fg-warning" }
+
   if (status === "input") return { kind: "icon", icon: "help", className: "text-v2-state-fg-warning" }
+
   if (status === "working") return { kind: "ring" }
+
   if (status === "unread") return { kind: "icon", icon: "check", className: "text-v2-state-fg-success" }
+
   return undefined
 }
