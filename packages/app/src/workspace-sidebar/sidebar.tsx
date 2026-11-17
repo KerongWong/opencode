@@ -94,14 +94,15 @@ function WorkspaceSidebarBody(props: { conn: ServerConnection.Any }) {
   const [ui, setUi] = createStore<{ expanded: Record<string, boolean> }>({ expanded: {} })
 
   // Dual-granularity clock (TIME-02): minute-level always, second-level only while a visible row
-  // is working. Rows register through onWorkingChange; the second timer exists only inside this effect.
+  // is working, so a working row's "now" flips to "1m" at the 60s boundary without a page reload.
+  // Rows register through onWorkingChange; the second timer exists only inside this effect.
   const [clock, setClock] = createStore({ second: Date.now(), minute: Date.now() })
 
   const minuteTimer = setInterval(() => setClock("minute", Date.now()), 60_000)
 
   onCleanup(() => clearInterval(minuteTimer))
 
-  const [working, setWorking] = createStore<Record<string, boolean>>({})
+  const [working, setWorking] = createStore<Record<string, boolean | undefined>>({})
 
   createEffect(() => {
     if (!Object.values(working).some(Boolean)) return
@@ -115,7 +116,8 @@ function WorkspaceSidebarBody(props: { conn: ServerConnection.Any }) {
 
   const now = (status: SessionRowStatus) => (status === "working" ? clock.second : clock.minute)
 
-  const setRowWorking = (sessionID: string, value: boolean) => setWorking(sessionID, value)
+  // Undefined deletes the key, so the registry shrinks back when a row stops working.
+  const setRowWorking = (sessionID: string, value: boolean) => setWorking(sessionID, value ? true : undefined)
 
   let scroller: HTMLDivElement | undefined
   let restoreFrame = 0

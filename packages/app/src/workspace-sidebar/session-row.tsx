@@ -90,7 +90,7 @@ export function SessionRow(props: {
       sessionBusy(serverCtx.data, id),
     )
 
-    const unread = serverCtx.notification.session.unread(sessionID, props.session)
+    const unread = !props.active && serverCtx.notification.session.unread(sessionID, props.session)
     const failed = (serverCtx.data.session.get(sessionID) ?? props.session)?.outcome === "failed"
 
     return sessionRowStatus({
