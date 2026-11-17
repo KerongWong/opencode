@@ -16,7 +16,9 @@ export function resolveChannel(): Channel {
 
   if (raw === "latest") return "prod"
 
-  return "dev"
+  // Fork: an unset channel must still package as "projects" on every machine — the fork ships
+  // exactly one identity (appId ai.opencode.desktop.projects), never an implicit "dev" build.
+  return "projects"
 }
 
 export const CLI_BINARIES: Array<{ target: string; package: string; os: string; cpu: string }> = [
