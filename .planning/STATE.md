@@ -2,11 +2,11 @@
 gsd_state_version: "1.0"
 milestone: v2.2
 milestone_name: dsh 交互对齐：@ 引用短路径与会话列表水位线
-status: planning
-last_updated: "2026-11-17T12:14:34.310Z"
+status: roadmap-created
+last_updated: "2026-11-17"
 last_activity: 2026-11-17
 progress:
-  total_phases: 0
+  total_phases: 2
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -17,24 +17,23 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-11-13)
+See: .planning/PROJECT.md (updated 2026-11-17, v2.2 启动)
 
 **Core value:** 侧栏显示什么完全由我的登记表决定：登记哪个本地文件夹就出现哪一行；同一仓库两份拷贝是两行；移除只是藏起来，目录、git 与会话分毫不动，重新登记即回来。
-**Current focus:** Phase 1 — 登记表数据模型与纯函数
-**SPEC:** `docs/designs/workspace-registry-sidebar.md`（§8 按文件实施、§11 验证、§12 冲突预算）
+**Current focus:** v2.2 Phase 6 — @ 引用短路径（composer 与已发消息）
+**SPEC:** v2.2 无独立设计文档；范围与默认值以 milestone 启动时的任务简报 + 事实复核结论为准（dsh 只读参照）。
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 6 — @ 引用短路径（composer 与已发消息）(not started)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-11-17 — Milestone v2.2 started
-
+Status: Roadmap created, awaiting approval
+Last activity: 2026-11-17 — v2.2 roadmap created（Phase 6/7）
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5 (v2.0)
+- Total plans completed: 7 (v2.0: 5, v2.1: 2)
 - Average duration: 13min
 - Total execution time: 0.2 hours
 
@@ -47,19 +46,14 @@ Last activity: 2026-11-17 — Milestone v2.2 started
 | 3 | - | - | - |
 | 04 | 1 | - | - |
 | 05 | 1 | - | - |
+| 6 | 0/TBD | - | - |
+| 7 | 0/TBD | - | - |
 
 **Recent Trend:**
 - Last 5 plans: -
 - Trend: -
 
 *Updated after each plan completion*
-**Per-Plan Metrics:**
-
-| Plan | Duration | Tasks | Files |
-|------|----------|-------|-------|
-| Phase 01 P1 | 13 | 3 tasks | 2 files |
-| Phase 02 P1 | 22min | 3 tasks | 4 files |
-| Phase 02-sidebar-render P2 | 50min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -68,18 +62,10 @@ Last activity: 2026-11-17 — Milestone v2.2 started
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
-- [Roadmap]: phase 边界按 SPEC 建议切分（模型 → 可见性 → 接缝），不按文件切分；v2.0 编号从 1 重启，不延续 v1.0。
-- [Roadmap]: `REG-04`（登记后用 `session.list` 的 `location.directory` 校准服务端拼写）落在 Phase 2，而不是 SPEC 建议的 Phase 1——Phase 1 的验收是纯单测，而该要求需要 HTTP 层（`row-sessions.ts`）。
-- [Roadmap]: 回退只由 Phase 3 拥有；Phase 1–2 从空目录新写模块，不修复、不复用 v1.0 的会话派生行代码。
-- [Roadmap]: Phase 1 的成功判据是「修复前失败的纯单测」，Phase 2 是「可见性与交互 + 文件级 typecheck」，Phase 3 是「diff 预算与隔离实测」——三者不互相替代。
-- [Phase 01]: 归一后的绝对路径即主键；Windows 盘符根保留 C:/（服务端 isWindowsStoragePath 只认 ^[A-Za-z]:/），比较仅在 win32 下不区分大小写
-- [Phase 01]: 重复登记复用既有记录（含已移除），清 removedAt 并保留 title/order/首次归一拼写；已可见时返回同一个 entries 引用以避免写入
-- [Phase 01]: 移除只写 removedAt，记录不删；新登记 order = 所有既有（含已移除）最大值 + 1；registryTarget 只返回 Persist.serverGlobal(scope, workspace-registry.v1) 目标，persisted() 留给 Phase 2
-- [Phase 02]: Rows come only from visible(entries); per-row session.list is filed under that row's directoryKey, and alias spellings never create a second row
-- [Phase 02]: REG-04 adopts a non-empty server spelling per row only; empty lists fall back to local normalization and older records self-heal on load
-- [Phase 02]: Availability is the filesystem's answer (file.list per ready row on load/reconnect), never inferred from session count; event refreshes skip the probe
-- [Phase 02]: Sidebar renders only visible(entries); no ungrouped/other fallback group exists
-- [Phase 02]: The titlebar mount replaces the SidebarOrganized import instead of adding one, keeping the diff at 2/2 lines
+- [Roadmap]: v2.2 phase 编号延续 v2.1（Phase 6/7），两个特性（MENT / COLL 水位线）相互独立、可任意顺序交付
+- [Roadmap]: MENT 特征（MENT-01/02）合并为单 Phase 6——成功判据是同一条「渲染层缩短、正文/wire 不变」契约的 composer 侧与消息侧两面，拆开会产生两个薄 phase
+- [Roadmap]: COLL 特征（COLL-03/04/05）合并为单 Phase 7——三项是同一次「二元持久化 → 内存水位」替换的分支语义，共享水位状态模型，拆开会导致状态实现三处妥协
+- [Roadmap]: 事实复核（2026-11-17）确认任务简报 A 项（消息级撤销+复制入口）已存在于 App 端，剔除出范围并记入 Out of Scope
 
 ### Pending Todos
 
@@ -91,8 +77,9 @@ None yet.
 - [全局] 不得派发 `location.get`（会创建 project 行）；登记流程只用 `session.list`。
 - [全局] `packages/app/src/custom-elements.d.ts` 是符号链接，未开开发者模式时整包 typecheck 失败——用 `bun check --no-script <files>` 做文件级门，并把该缺陷与本次改动区分开。
 - [全局] 不得重启已安装的应用或服务进程；验证走 dev 服务器与 `OPENCODE_CHANNEL=fork` 新构建。
-- [Phase 2] `archived` / `unarchived` / `deleted` 事件只带 `sessionID`，必须靠内存映射做行级刷新，不能退回全局重扫。
-- [Phase 3] 触点预算（5 文件 / ~10 行 / 0 删除）是需求而非偏好；任何超出都要先收口再继续。
+- [Phase 6] 缩短只发生在渲染层：composer 的 model.ts 写入与 request.ts 序列化必须保持全路径；session-ui message-content.tsx 的 data-highlight="file" 渲染做 basename + 同消息最短区分后缀，title 为全路径。
+- [Phase 7] dsh 水位语义蓝本（WorkspaceBrowser.tsx）：基线 5、+5/次、剩余 ≤5 一步全展开 + Show less 一步回基线、前 50 条内 running/pending/current/unread-completed 自动抬升且单调、折叠行重置、不持久化；现有 sessions.test.ts L291-312 锚定二元语义，需随实现改写。
+- [全局] 触点预算：优先只增不改；本里程碑只动 packages/app 与 packages/session-ui（无 TUI/core/server）。
 
 ### Quick Tasks Completed
 
@@ -110,10 +97,10 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-11-13T17:57:11.626Z
-Stopped at: Phase 05 complete — all phases complete
+Last session: 2026-11-17
+Stopped at: v2.2 roadmap created（Phase 6/7 待审批）
 Resume file: None
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- Approve the v2.2 roadmap, then run `/gsd-plan-phase 6`（或 Phase 7，二者相互独立）

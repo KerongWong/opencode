@@ -35,4 +35,8 @@
 
 | REQ-ID | Phase |
 |--------|-------|
-| _（待 roadmapper 填充）_ | |
+| MENT-01 | Phase 6 |
+| MENT-02 | Phase 6 |
+| COLL-03 | Phase 7 |
+| COLL-04 | Phase 7 |
+| COLL-05 | Phase 7 |
