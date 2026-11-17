@@ -1,7 +1,7 @@
 {
   "contract": "1.0.0",
   "flavor": "core",
-  "milestone": "v2.0 — 工作区登记侧栏",
+  "milestone": "v2.1",
   "phases": [
     {
       "number": "1",
@@ -20,9 +20,9 @@
     }
   ],
   "next": {
-    "command": "/gsd-progress --next",
-    "label": "Advance to the next step (verify)",
-    "reason": "Phase 3 of 3 · 67% · ready to verify"
+    "command": "/gsd-discuss-phase",
+    "label": "Discuss the first phase",
+    "reason": "Project initialized — plan your first phase"
   },
-  "updated_at": "2026-11-14T04:10:47.043Z"
+  "updated_at": "2026-11-17T06:04:22.751Z"
 }
