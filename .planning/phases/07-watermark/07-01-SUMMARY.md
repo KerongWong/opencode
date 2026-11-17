@@ -21,7 +21,7 @@ affects: [07-02-watermark-auto-raise, workspace-sidebar, verify-work]
 actuals:
   tokens: 3300
   tasks: 2
-  commits: 3
+  commits: 5
 
 tech-stack:
   added: []
@@ -81,9 +81,9 @@ coverage:
 duration: 8min
 completed: 2026-11-17
 status: complete
-commits: 3
+commits: 4
 plan_head_before: 83b85036a121d0db8958c38305e58c786e7d6a5a
-plan_head_after: a69878cf17
+plan_head_after: 3456cf4970
 ---
 
 # Phase 07 Plan 01: 会话列表水位线（核心切片）Summary
