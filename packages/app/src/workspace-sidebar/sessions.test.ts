@@ -11,6 +11,7 @@ import {
   queryDirectoryFor,
   raisedWatermark,
   remainingHidden,
+  requiredRowWatermark,
   requiredWatermark,
   rowKeyFor,
   rowKeyOf,
@@ -384,5 +385,45 @@ describe("raisedWatermark", () => {
 
   test("an equal requirement returns the current value, so the driver can skip the write", () => {
     expect(raisedWatermark(12, 12)).toBe(12)
+  })
+})
+
+describe("requiredRowWatermark", () => {
+  const ready = (ids: string[]) => ({ status: "ready" as const, sessions: ids.map((id) => ({ id })) })
+
+  const idle = () => "idle" as const
+
+  test("a working session below the baseline watermark raises the row (COLL-04 regression)", () => {
+    // The driver derives statuses from the row's loaded data, so a session hidden below the
+    // watermark — which never mounts a SessionRow — still lifts the requirement to just past it.
+    const statusOf = (session: { id: string }) => (session.id === "s7" ? ("working" as const) : ("idle" as const))
+
+    expect(requiredRowWatermark(ready(["s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9"]), statusOf, undefined)).toBe(
+      8,
+    )
+  })
+
+  test("an approval session below the watermark raises the row, and the highest requirement wins", () => {
+    const statusOf = (session: { id: string }) =>
+      session.id === "s3" || session.id === "s9" ? ("approval" as const) : ("idle" as const)
+
+    expect(requiredRowWatermark(ready(["s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9"]), statusOf, undefined)).toBe(
+      10,
+    )
+  })
+
+  test("the active session raises whatever its status", () => {
+    expect(requiredRowWatermark(ready(["s0", "s1"]), idle, "s1")).toBe(2)
+  })
+
+  test("a row without a ready answer raises nothing", () => {
+    const working = () => "working" as const
+
+    expect(requiredRowWatermark({ status: "loading", sessions: [] }, working, undefined)).toBe(0)
+    expect(requiredRowWatermark({ status: "failed", sessions: [] }, working, undefined)).toBe(0)
+  })
+
+  test("a quiet row raises nothing", () => {
+    expect(requiredRowWatermark(ready(Array.from({ length: 20 }, (_, index) => `s${index}`)), idle, undefined)).toBe(0)
   })
 })

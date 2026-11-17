@@ -149,6 +149,27 @@ export function raisedWatermark(current: number, required: number) {
   return current
 }
 
+/**
+ * COLL-04: the watermark requirement of a whole row, derived from every session in it — including
+ * sessions hidden below the current watermark, which never mount a SessionRow to report a status.
+ * The caller injects the status lookup (a read over the server context), keeping this a pure
+ * function over the row data so the hidden-session case is unit-testable. A row without a ready
+ * answer raises nothing.
+ */
+export function requiredRowWatermark<T extends { id: string }>(
+  row: { status: "loading" | "ready" | "failed"; sessions: readonly T[] },
+  statusOf: (session: T) => SessionRowStatus,
+  activeSession: string | undefined,
+) {
+  if (row.status !== "ready") return 0
+
+  return row.sessions.reduce(
+    (highest, session, index) =>
+      Math.max(highest, requiredWatermark(index, statusOf(session), session.id === activeSession)),
+    0,
+  )
+}
+
 const SESSION_LIST_LIMIT = 50
 
 /**

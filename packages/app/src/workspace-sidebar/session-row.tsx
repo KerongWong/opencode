@@ -9,7 +9,7 @@ import { Icon } from "@opencode/ui/icon"
 import { Menu } from "@opencode/ui/menu"
 import { useLanguage } from "@/runtime/i18n/language"
 import { ServerConnection } from "@/runtime/server/registry"
-import { useGlobal } from "@/runtime/server/runtime"
+import { useGlobal, type ServerCtx } from "@/runtime/server/runtime"
 import type { Project } from "@/runtime/server/types"
 import { projectSettingsKey, useSettings } from "@/settings/model"
 import { errorMessage } from "@/shell/layout/helpers"
@@ -35,6 +35,34 @@ const STATUS_LABEL: Partial<Record<SessionRowStatus, string>> = {
 }
 
 /**
+ * COLL-04: the row status as a pure read over the server context — the same inputs the row memo
+ * below uses. Shared with the sidebar's watermark driver so a session hidden below the watermark
+ * (which never mounts a SessionRow) still contributes its attention status to the auto-raise.
+ */
+export function rowSessionStatus(input: {
+  serverCtx: ServerCtx
+  session: SessionInfo
+  active: boolean
+  autoApprove: boolean
+}): SessionRowStatus {
+  const sessionID = input.session.id
+  const requests = sessionRequests(input.serverCtx, sessionID, true, input.autoApprove)
+  const busy = [...new Set([sessionID, ...input.serverCtx.data.session.family(sessionID)])].some((id) =>
+    sessionBusy(input.serverCtx.data, id),
+  )
+  const unread = !input.active && input.serverCtx.notification.session.unread(sessionID, input.session)
+  const failed = (input.serverCtx.data.session.get(sessionID) ?? input.session)?.outcome === "failed"
+
+  return sessionRowStatus({
+    failed,
+    permission: !!requests.permission,
+    form: !!requests.form,
+    busy,
+    unread,
+  })
+}
+
+/**
  * One session row of the workspace sidebar: title, state mark, relative age and the shared
  * session context menu. Derived from `ProjectSessionRow` without touching that upstream file;
  * the status inputs are the same ones the tab avatar reads (`project-avatar-state`).
@@ -54,8 +82,6 @@ export function SessionRow(props: {
   now: (status: SessionRowStatus) => number
   /** Registers the row with the sidebar's second-level clock while it is working. */
   onWorkingChange?: (sessionID: string, working: boolean) => void
-  /** Reports the row's status memo up so the sidebar's watermark driver can raise attention rows. */
-  onStatusChange?: (sessionID: string, status: SessionRowStatus) => void
   onOpen: () => void
 }) {
   const language = useLanguage()
@@ -84,23 +110,11 @@ export function SessionRow(props: {
 
     if (!serverCtx) return "idle"
 
-    const sessionID = props.session.id
-    const project = projectSettingsKey(serverCtx.sdk.scope, props.session.projectID)
-    const requests = sessionRequests(serverCtx, sessionID, true, settings.permissions.autoApproves(project))
-
-    const busy = [...new Set([sessionID, ...serverCtx.data.session.family(sessionID)])].some((id) =>
-      sessionBusy(serverCtx.data, id),
-    )
-
-    const unread = !props.active && serverCtx.notification.session.unread(sessionID, props.session)
-    const failed = (serverCtx.data.session.get(sessionID) ?? props.session)?.outcome === "failed"
-
-    return sessionRowStatus({
-      failed,
-      permission: !!requests.permission,
-      form: !!requests.form,
-      busy,
-      unread,
+    return rowSessionStatus({
+      serverCtx,
+      session: props.session,
+      active: props.active,
+      autoApprove: settings.permissions.autoApproves(projectSettingsKey(serverCtx.sdk.scope, props.session.projectID)),
     })
   })
 
@@ -112,13 +126,6 @@ export function SessionRow(props: {
     props.onWorkingChange?.(props.session.id, true)
 
     onCleanup(() => props.onWorkingChange?.(props.session.id, false))
-  })
-
-  // COLL-04: the watermark driver reads the reported statuses; the effect re-runs only when the
-  // memo actually changes, so a steady state reports nothing. Stale ids are harmless — the driver
-  // only consults sessions currently in a row.
-  createEffect(() => {
-    props.onStatusChange?.(props.session.id, status())
   })
 
   const age = (value: SessionRowStatus) => {

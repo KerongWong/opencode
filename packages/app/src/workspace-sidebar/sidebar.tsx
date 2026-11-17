@@ -23,6 +23,7 @@ import { createProjectSessionActions } from "@/shell/tabs/project-sessions"
 import { useTabs } from "@/shell/tabs/tabs"
 import { createSidebarActivityListener } from "@/shell/titlebar/sidebar-organized"
 import { useDirectoryPicker } from "@/workspaces/selection/picker"
+import { projectSettingsKey, useSettings } from "@/settings/model"
 import {
   ADD_OPEN_WATCH_TIMEOUT_MS,
   INITIAL_ADD_OPEN_STATE,
@@ -32,14 +33,14 @@ import {
 } from "./add-open-machine"
 import { WorkspaceRemoveDialog, WorkspaceRenameDialog } from "./dialogs"
 import { detectHostPlatform, directoryKey, hostPlatform, visible, type WorkspaceEntry } from "./registry"
-import { SessionRow } from "./session-row"
+import { SessionRow, rowSessionStatus } from "./session-row"
 import type { SessionRowStatus } from "./session-status"
 import {
   createWorkspaceSessions,
   nextWatermark,
   raisedWatermark,
   remainingHidden,
-  requiredWatermark,
+  requiredRowWatermark,
   SESSION_WATERMARK_BASE,
   sessionsOf,
   shownByWatermark,
@@ -99,10 +100,14 @@ function WorkspaceSidebarBody(props: { conn: ServerConnection.Any }) {
 
   const rows = createMemo(() => visible(registry.entries()))
 
+  const serverCtx = useServerCtx(() => props.conn)
+
+  const settings = useSettings()
+
   const sessions = createWorkspaceSessions({
     entries: rows,
     connection: () => props.conn,
-    ctx: useServerCtx(() => props.conn),
+    ctx: serverCtx,
     platform: () => host,
     onServerSpelling: (directory, spelling) => registry.adoptDirectory(directory, spelling),
   })
@@ -144,12 +149,6 @@ function WorkspaceSidebarBody(props: { conn: ServerConnection.Any }) {
 
   // Undefined deletes the key (COLL-05 fold reset), same idiom as setRowWorking.
   const setRowWatermark = (key: string, value: number | undefined) => setWatermarks(key, value)
-
-  // COLL-04: the row components report their status memo here; the auto-raise driver below turns
-  // attention statuses into watermark lifts. In-memory only, like the watermarks themselves.
-  const [statuses, setStatuses] = createStore<Record<string, SessionRowStatus | undefined>>({})
-
-  const setSessionStatus = (sessionID: string, status: SessionRowStatus) => setStatuses(sessionID, status)
 
   // NAV-01 driver: the machine decides, this edge acts. The watch effect below is owned by the
   // `awaiting` state (nested effects die with their parent's re-run), so watch.start/watch.stop
@@ -338,35 +337,46 @@ function WorkspaceSidebarBody(props: { conn: ServerConnection.Any }) {
   }
 
   // COLL-04: render-phase attention raise. Working / approval / input / unread sessions and the
-  // active session lift their row's watermark so they are visible without a click; the lift never
-  // lowers a watermark here — folding the row and Show less are the only lowers. `untrack`
-  // isolates the watermark writes from the reads (the sessions.load() effect above is the same
-  // precedent), and a row writes only when the raised watermark strictly exceeds the stored one,
-  // so a steady state performs zero writes.
+  // active session lift their row's watermark so they are visible without a click; statuses are
+  // derived from the row's loaded session data (rowSessionStatus), so a session below the current
+  // watermark — which never mounts a SessionRow — raises it too. Folded rows are skipped: folding
+  // reset their watermark and its hidden sessions must not re-lift it while collapsed. The lift
+  // never lowers a watermark here — folding the row and Show less are the only lowers. Every read
+  // stays in the tracked region (status reads included, or a session turning working below the
+  // watermark would never re-run this effect); `untrack` isolates the watermark writes, and a row
+  // writes only when the raised watermark strictly exceeds the stored one, so a steady state
+  // performs zero writes.
   createEffect(() => {
     const entries = rows()
     const loaded = sessions.rows()
     const current = route()
-    const known = { ...statuses }
+    const ctx = serverCtx()
 
     const activeSession = current.type === "session" && current.server === serverKey ? current.sessionId : undefined
 
+    const required = entries.map((entry) => {
+      const key = directoryKey(entry.directory, host)
+
+      if (!expanded(key)) return [key, 0] as const
+
+      const statusOf = (session: SessionInfo): SessionRowStatus =>
+        ctx
+          ? rowSessionStatus({
+              serverCtx: ctx,
+              session,
+              active: session.id === activeSession,
+              autoApprove: settings.permissions.autoApproves(projectSettingsKey(ctx.sdk.scope, session.projectID)),
+            })
+          : "idle"
+
+      return [key, requiredRowWatermark(sessionsOf(loaded, key), statusOf, activeSession)] as const
+    })
+
     untrack(() => {
-      for (const entry of entries) {
-        const key = directoryKey(entry.directory, host)
-        const row = sessionsOf(loaded, key)
+      for (const [key, needed] of required) {
+        if (needed === 0) continue
 
-        if (row.status !== "ready") continue
-
-        const required = row.sessions.reduce(
-          (highest, session, index) =>
-            Math.max(highest, requiredWatermark(index, known[session.id] ?? "idle", session.id === activeSession)),
-          0,
-        )
-
-        if (required === 0) continue
-
-        const raised = raisedWatermark(watermark(key), required)
+        const raised = raisedWatermark(watermark(key), needed)
 
         if (raised > watermark(key)) setRowWatermark(key, raised)
       }
@@ -446,7 +456,6 @@ function WorkspaceSidebarBody(props: { conn: ServerConnection.Any }) {
                       isActive={isActive}
                       now={now}
                       onWorkingChange={setRowWorking}
-                      onStatusChange={setSessionStatus}
                       watermark={watermark(key())}
                       onShowMore={() =>
                         setRowWatermark(
@@ -494,8 +503,6 @@ function WorkspaceRow(props: {
   isActive: (sessionID: string) => boolean
   now: (status: SessionRowStatus) => number
   onWorkingChange: (sessionID: string, working: boolean) => void
-  /** COLL-04: reports each row's status memo up for the watermark auto-raise driver. */
-  onStatusChange: (sessionID: string, status: SessionRowStatus) => void
   /** COLL-03: how many of this row's sessions are on screen; the baseline reads when unstored. */
   watermark: number
   onShowMore: () => void
@@ -613,7 +620,6 @@ function WorkspaceRow(props: {
                 active={props.isActive(session().id)}
                 now={props.now}
                 onWorkingChange={props.onWorkingChange}
-                onStatusChange={props.onStatusChange}
                 onOpen={() => props.onOpen(session())}
               />
             )}
