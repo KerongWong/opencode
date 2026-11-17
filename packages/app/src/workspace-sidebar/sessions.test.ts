@@ -18,6 +18,7 @@ import {
   serverSpelling,
   sessionsOf,
   shownByWatermark,
+  watermarkBaseline,
   SESSION_WATERMARK_AUTO_MAX,
 } from "./sessions"
 import type { RowSessions } from "./sessions"
@@ -334,6 +335,13 @@ describe("watermark", () => {
     expect(shownByWatermark(list(20), 5).map((item) => item.id)).toEqual(["s0", "s1", "s2", "s3", "s4"])
     expect(shownByWatermark(list(20), 20)).toHaveLength(20)
     expect(shownByWatermark([], 5)).toEqual([])
+  })
+
+  test("a reset baseline is the floor, or an attention requirement above it (COLL-04)", () => {
+    expect(watermarkBaseline(0)).toBe(5)
+    expect(watermarkBaseline(3)).toBe(5)
+    expect(watermarkBaseline(7)).toBe(7)
+    expect(watermarkBaseline(50)).toBe(50)
   })
 })
 

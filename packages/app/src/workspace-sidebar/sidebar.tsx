@@ -44,6 +44,7 @@ import {
   SESSION_WATERMARK_BASE,
   sessionsOf,
   shownByWatermark,
+  watermarkBaseline,
 } from "./sessions"
 import { createWorkspaceRegistry } from "./store"
 
@@ -280,13 +281,37 @@ function WorkspaceSidebarBody(props: { conn: ServerConnection.Any }) {
 
   const unavailable = (key: string) => sessions.availability()[key] === "unavailable"
 
+  // One spelling of the COLL-04 requirement read, shared by the render-phase lift below and the
+  // reset paths (Show less, fold), so a reset can target max(BASE, required) instead of a bare
+  // floor the next lift would immediately re-raise for a still-attention session.
+  const rowRequirement = (key: string) => {
+    const current = route()
+    const ctx = serverCtx()
+
+    const activeSession = current.type === "session" && current.server === serverKey ? current.sessionId : undefined
+
+    const statusOf = (session: SessionInfo): SessionRowStatus =>
+      ctx
+        ? rowSessionStatus({
+            serverCtx: ctx,
+            session,
+            active: session.id === activeSession,
+            autoApprove: settings.permissions.autoApproves(projectSettingsKey(ctx.sdk.scope, session.projectID)),
+          })
+        : "idle"
+
+    return requiredRowWatermark(sessionsOf(sessions.rows(), key), statusOf, activeSession)
+  }
+
   const toggle = (key: string) => {
     const next = !expanded(key)
 
     setUi("expanded", key, next)
 
-    // COLL-05: folding a row resets its session watermark back to the baseline.
-    if (!next) setRowWatermark(key, undefined)
+    // COLL-05: folding a row resets its session watermark back to the baseline. The baseline is
+    // the batch floor or an attention requirement above it — never a bare floor the next driver
+    // pass would immediately re-lift for a still-unread session.
+    if (!next) setRowWatermark(key, watermarkBaseline(rowRequirement(key)))
 
     // The first frame never waits: an expanded row renders what it already has, then fills in.
     if (next && !sessions.rows()[key] && !unavailable(key)) sessions.refreshRow(key)
@@ -348,28 +373,13 @@ function WorkspaceSidebarBody(props: { conn: ServerConnection.Any }) {
   // performs zero writes.
   createEffect(() => {
     const entries = rows()
-    const loaded = sessions.rows()
-    const current = route()
-    const ctx = serverCtx()
-
-    const activeSession = current.type === "session" && current.server === serverKey ? current.sessionId : undefined
 
     const required = entries.map((entry) => {
       const key = directoryKey(entry.directory, host)
 
       if (!expanded(key)) return [key, 0] as const
 
-      const statusOf = (session: SessionInfo): SessionRowStatus =>
-        ctx
-          ? rowSessionStatus({
-              serverCtx: ctx,
-              session,
-              active: session.id === activeSession,
-              autoApprove: settings.permissions.autoApproves(projectSettingsKey(ctx.sdk.scope, session.projectID)),
-            })
-          : "idle"
-
-      return [key, requiredRowWatermark(sessionsOf(loaded, key), statusOf, activeSession)] as const
+      return [key, rowRequirement(key)] as const
     })
 
     untrack(() => {
@@ -463,7 +473,7 @@ function WorkspaceSidebarBody(props: { conn: ServerConnection.Any }) {
                           nextWatermark(watermark(key()), sessionsOf(sessions.rows(), key()).sessions.length),
                         )
                       }
-                      onShowLess={() => setRowWatermark(key(), undefined)}
+                      onShowLess={() => setRowWatermark(key(), watermarkBaseline(rowRequirement(key())))}
                       onOpen={(session) =>
                         actions.openProjectSession(props.conn, session.location.directory, session, { preview: true })
                       }

@@ -139,6 +139,16 @@ export function requiredWatermark(index: number, status: SessionRowStatus, isAct
 }
 
 /**
+ * COLL-03/04: the baseline a reset falls back to — the batch floor, or an attention requirement
+ * above it (dsh's baselines = max(BASE, requiredWatermark)). "Show less" and folding drop the
+ * stored watermark to this value, never below a session that must stay visible, so the reset is
+ * stable instead of being re-lifted by the next driver pass. A quiet row reads as the floor.
+ */
+export function watermarkBaseline(required: number) {
+  return Math.max(SESSION_WATERMARK_BASE, required)
+}
+
+/**
  * COLL-04: the raise half of the render-phase lift — monotonic by construction. A requirement at
  * or below the current watermark leaves it untouched, and an equal requirement returns the current
  * value, so the driver can compare and skip the store write entirely (no signal churn).
