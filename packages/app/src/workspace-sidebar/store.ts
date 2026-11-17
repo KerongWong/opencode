@@ -11,13 +11,6 @@ import {
   type HostPlatform,
   type WorkspaceEntry,
 } from "./registry"
-import {
-  conceal,
-  initialUiState,
-  reveal,
-  uiStateTarget,
-  WorkspaceUiSchema,
-} from "./ui-state"
 
 /**
  * Drag-and-drop writes the visible order back as `order = index`. Records outside the supplied
@@ -83,8 +76,8 @@ export function adoptEntryDirectory(
 }
 
 /**
- * The `persisted()` call sites for this module: the workspace registry (`workspace-registry.v1`)
- * and the sidebar UI state (`workspace-sidebar-ui.v1`). Both are per-server client-local stores.
+ * The `persisted()` call site for this module: the workspace registry (`workspace-registry.v1`),
+ * a per-server client-local store.
  */
 
 /**
@@ -125,28 +118,6 @@ export function createWorkspaceRegistry(scope: ServerScope, platform: HostPlatfo
     },
     adoptDirectory(directory: string, serverDirectory: string) {
       commit(adoptEntryDirectory(state.entries, directory, serverDirectory, platform))
-    },
-  }
-}
-
-/** COLL-02: reveal/conceal state of each row's full session list, kept across restarts. */
-export function createWorkspaceUiState(scope: ServerScope) {
-  const [state, setState] = persisted(uiStateTarget(scope), WorkspaceUiSchema, initialUiState)
-
-  const commit = (revealed: string[]) => {
-    if (revealed === state.revealed) return
-
-    setState("revealed", revealed)
-  }
-
-  return {
-    revealed: () => state.revealed,
-    isRevealed: (key: string) => state.revealed.includes(key),
-    reveal(key: string) {
-      commit(reveal(state.revealed, key))
-    },
-    conceal(key: string) {
-      commit(conceal(state.revealed, key))
     },
   }
 }
