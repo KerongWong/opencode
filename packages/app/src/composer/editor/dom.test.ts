@@ -148,6 +148,23 @@ test.each<{ name: string; dom: () => HTMLElement; prompt: ComposerPrompt; matche
     prompt: prompt({ type: "file" as const, path: "src/app.tsx", content: "@src/app.tsx", start: 0, end: 0 }),
     matches: true,
   },
+  {
+    name: "a root-level file whose label is the whole path",
+    dom: () => editor(shortenedFileMention("@app.tsx", "app.tsx")),
+    prompt: prompt({ type: "file" as const, path: "app.tsx", content: "@app.tsx", start: 0, end: 0 }),
+    matches: true,
+  },
+  {
+    name: "a shortened file pill without a target",
+    dom: () => {
+      const element = pill()
+      element.textContent = "@app.tsx"
+
+      return editor(element)
+    },
+    prompt: prompt({ type: "file" as const, path: "src/app.tsx", content: "@src/app.tsx", start: 0, end: 0 }),
+    matches: false,
+  },
 ])("matches shortened file pills against the prompt: $name", (row) => {
   expect(editorMatchesPrompt(row.dom(), row.prompt)).toBe(row.matches)
 })
