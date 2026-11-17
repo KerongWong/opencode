@@ -4,17 +4,17 @@ milestone: v2.2
 milestone_name: dsh 交互对齐：@ 引用短路径与会话列表水位线
 current_phase: 07
 current_phase_name: 会话列表水位线
-status: executing
-stopped_at: Completed 07-01-PLAN.md
-last_updated: "2026-11-17T18:05:54.116Z"
+status: verifying
+stopped_at: Completed 07-02-PLAN.md
+last_updated: "2026-11-17T18:16:48.985Z"
 last_activity: 2026-11-18
 last_activity_desc: Phase 07 execution started
-state_head: a69878cf17b341a34bb6e52107d9ab336ff92dc7
+state_head: 9bc87482644df5fdd38900006b6219b98824e6e4
 progress:
   total_phases: 2
   completed_phases: 1
   total_plans: 4
-  completed_plans: 3
+  completed_plans: 4
 ---
 
 # Project State
@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-11-17, v2.2 启动)
 
 Phase: 07 (会话列表水位线) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-11-18 — Phase 07 execution started
 
 ## Performance Metrics
@@ -65,6 +65,7 @@ Last activity: 2026-11-18 — Phase 07 execution started
 | Phase 06 P01 | 12min | 2 tasks | 4 files |
 | Phase 06 P02 | 15min | 2 tasks | 3 files |
 | Phase 07 P01 | 8min | 2 tasks | 3 files |
+| Phase 07 P02 | 20 min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -81,6 +82,9 @@ Recent decisions affecting current work:
 - [Phase 06]: [Phase 06]: composer chip 渲染缩短以 original.content 为 parse 真源（渲染缩短下 textContent 不可信）；file 身份匹配迁移到 dataset，label 比较只保留非 file 类型
 - [Phase 07]: 水位 store 用 Record<string, number | undefined>（setRowWorking 惯例），undefined 删 key；Show less 与折叠重置共用删 key = 回基线路径
 - [Phase 07]: RED 证据：stub 导出 + bun:test 输出转 TAP 过 tdd-red-evidence（RED_EVIDENCE_OK）；workflow.tdd_mode=false 按项目 RED-commit 惯例执行
+- [Phase 07]: COLL-04: status signal lifted via onStatusChange callback reusing the row status memo (mirrors onWorkingChange); driver never re-derives flags, no new state machine
+- [Phase 07]: COLL-05: revealed persistence layer removed net (ui-state.ts/test deleted, createWorkspaceUiState gone, workspace-sidebar-ui.v1 zero reads/writes); workspace-registry.v1 untouched
+- [Phase 07]: COLL-04 render driver: untrack-isolated reads/writes on the same store, writes only when raised watermark strictly exceeds stored (zero writes at steady state, no signal churn)
 
 ### Pending Todos
 
@@ -114,8 +118,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-11-17T18:05:54.076Z
-Stopped at: Completed 07-01-PLAN.md
+Last session: 2026-11-17T18:16:48.948Z
+Stopped at: Completed 07-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
