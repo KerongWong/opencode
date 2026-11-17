@@ -2,15 +2,19 @@
 gsd_state_version: "1.0"
 milestone: v2.2
 milestone_name: dsh 交互对齐：@ 引用短路径与会话列表水位线
-status: roadmap-created
-last_updated: "2026-11-17"
+current_phase: 06
+current_phase_name: "@ 引用短路径（composer 与已发消息）"
+status: executing
+stopped_at: v2.2 roadmap created（Phase 6/7 待审批）
+last_updated: "2026-11-17T12:39:09.442Z"
 last_activity: 2026-11-17
+last_activity_desc: Phase 06 execution started
+state_head: 83d33a79c99488c2ae46c5960fca5a5531e70846
 progress:
   total_phases: 2
   completed_phases: 0
-  total_plans: 0
+  total_plans: 2
   completed_plans: 0
-  percent: 0
 ---
 
 # Project State
@@ -20,15 +24,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-11-17, v2.2 启动)
 
 **Core value:** 侧栏显示什么完全由我的登记表决定：登记哪个本地文件夹就出现哪一行；同一仓库两份拷贝是两行；移除只是藏起来，目录、git 与会话分毫不动，重新登记即回来。
-**Current focus:** v2.2 Phase 6 — @ 引用短路径（composer 与已发消息）
+**Current focus:** Phase 06 — @ 引用短路径（composer 与已发消息）
 **SPEC:** v2.2 无独立设计文档；范围与默认值以 milestone 启动时的任务简报 + 事实复核结论为准（dsh 只读参照）。
 
 ## Current Position
 
-Phase: 6 — @ 引用短路径（composer 与已发消息）(not started)
-Plan: —
-Status: Roadmap created, awaiting approval
-Last activity: 2026-11-17 — v2.2 roadmap created（Phase 6/7）
+Phase: 06 (@ 引用短路径（composer 与已发消息）) — EXECUTING
+Plan: 1 of 2
+Status: Executing Phase 06
+Last activity: 2026-11-17 — Phase 06 execution started
 
 ## Performance Metrics
 

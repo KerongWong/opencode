@@ -1,23 +1,23 @@
 {
   "contract": "1.0.0",
   "flavor": "core",
-  "milestone": "v2.1 — workspace-sidebar 会话行状态与交互增强",
+  "milestone": "v2.2 — dsh 交互对齐：@ 引用短路径与会话列表水位线",
   "phases": [
     {
-      "number": "4",
-      "name": "会话行状态与时间标签",
-      "status": "complete"
+      "number": "6",
+      "name": "@ 引用短路径",
+      "status": "pending"
     },
     {
-      "number": "5",
-      "name": "Add-folder 跳转与会话列表折叠",
-      "status": "complete"
+      "number": "7",
+      "name": "会话列表水位线",
+      "status": "pending"
     }
   ],
   "next": {
-    "command": "/gsd-progress",
-    "label": "Show progress",
-    "reason": "Unsure of state — showing progress"
+    "command": "/gsd-progress --next",
+    "label": "Advance to the next step",
+    "reason": "Phase 1 of 2 · executing"
   },
-  "updated_at": "2026-11-17T07:46:44.616Z"
+  "updated_at": "2026-11-17T12:39:09.531Z"
 }
