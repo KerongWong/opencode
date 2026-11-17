@@ -34,8 +34,15 @@ import { WorkspaceRemoveDialog, WorkspaceRenameDialog } from "./dialogs"
 import { detectHostPlatform, directoryKey, hostPlatform, visible, type WorkspaceEntry } from "./registry"
 import { SessionRow } from "./session-row"
 import type { SessionRowStatus } from "./session-status"
-import { createWorkspaceSessions, hiddenSessionCount, sessionsOf, SESSIONS_PER_PROJECT, shownSessions } from "./sessions"
-import { createWorkspaceRegistry, createWorkspaceUiState } from "./store"
+import {
+  createWorkspaceSessions,
+  nextWatermark,
+  remainingHidden,
+  SESSION_WATERMARK_BASE,
+  sessionsOf,
+  shownByWatermark,
+} from "./sessions"
+import { createWorkspaceRegistry } from "./store"
 
 /**
  * The registered workspaces of the selected server. Keyed on the connection, so switching servers
@@ -100,6 +107,10 @@ function WorkspaceSidebarBody(props: { conn: ServerConnection.Any }) {
 
   const [ui, setUi] = createStore<{ expanded: Record<string, boolean> }>({ expanded: {} })
 
+  // COLL-05: session watermarks live in component memory only — folding the row or unmounting
+  // resets them; nothing here reads or writes a persisted layer.
+  const [watermarks, setWatermarks] = createStore<Record<string, number | undefined>>({})
+
   // Dual-granularity clock (TIME-02): minute-level always, second-level only while a visible row
   // is working, so a working row's "now" flips to "1m" at the 60s boundary without a page reload.
   // Rows register through onWorkingChange; the second timer exists only inside this effect.
@@ -126,7 +137,11 @@ function WorkspaceSidebarBody(props: { conn: ServerConnection.Any }) {
   // Undefined deletes the key, so the registry shrinks back when a row stops working.
   const setRowWorking = (sessionID: string, value: boolean) => setWorking(sessionID, value ? true : undefined)
 
-  const uiState = createWorkspaceUiState(servers.scope(serverKey))
+  // A row with no stored watermark reads as the baseline (COLL-03).
+  const watermark = (key: string) => watermarks[key] ?? SESSION_WATERMARK_BASE
+
+  // Undefined deletes the key (COLL-05 fold reset), same idiom as setRowWorking.
+  const setRowWatermark = (key: string, value: number | undefined) => setWatermarks(key, value)
 
   // NAV-01 driver: the machine decides, this edge acts. The watch effect below is owned by the
   // `awaiting` state (nested effects die with their parent's re-run), so watch.start/watch.stop
@@ -263,6 +278,9 @@ function WorkspaceSidebarBody(props: { conn: ServerConnection.Any }) {
 
     setUi("expanded", key, next)
 
+    // COLL-05: folding a row resets its session watermark back to the baseline.
+    if (!next) setRowWatermark(key, undefined)
+
     // The first frame never waits: an expanded row renders what it already has, then fills in.
     if (next && !sessions.rows()[key] && !unavailable(key)) sessions.refreshRow(key)
   }
@@ -384,9 +402,14 @@ function WorkspaceSidebarBody(props: { conn: ServerConnection.Any }) {
                       isActive={isActive}
                       now={now}
                       onWorkingChange={setRowWorking}
-                      revealed={uiState.isRevealed(key())}
-                      onRevealMore={() => uiState.reveal(key())}
-                      onRevealLess={() => uiState.conceal(key())}
+                      watermark={watermark(key())}
+                      onShowMore={() =>
+                        setRowWatermark(
+                          key(),
+                          nextWatermark(watermark(key()), sessionsOf(sessions.rows(), key()).sessions.length),
+                        )
+                      }
+                      onShowLess={() => setRowWatermark(key(), undefined)}
                       onOpen={(session) =>
                         actions.openProjectSession(props.conn, session.location.directory, session, { preview: true })
                       }
@@ -426,9 +449,10 @@ function WorkspaceRow(props: {
   isActive: (sessionID: string) => boolean
   now: (status: SessionRowStatus) => number
   onWorkingChange: (sessionID: string, working: boolean) => void
-  revealed: boolean
-  onRevealMore: () => void
-  onRevealLess: () => void
+  /** COLL-03: how many of this row's sessions are on screen; the baseline reads when unstored. */
+  watermark: number
+  onShowMore: () => void
+  onShowLess: () => void
   onOpen: (session: SessionInfo) => void
 }) {
   const language = useLanguage()
@@ -533,7 +557,7 @@ function WorkspaceRow(props: {
               {language.t("sidebar.workspace.sessions.empty")}
             </div>
           </Show>
-          <Key each={shownSessions(props.row.sessions, props.revealed)} by={(session) => session.id}>
+          <Key each={shownByWatermark(props.row.sessions, props.watermark)} by={(session) => session.id}>
             {(session) => (
               <SessionRow
                 server={props.server}
@@ -546,20 +570,24 @@ function WorkspaceRow(props: {
               />
             )}
           </Key>
-          <Show when={hiddenSessionCount(props.row.sessions.length) > 0 && !props.revealed}>
+          <Show when={remainingHidden(props.row.sessions.length, props.watermark) > 0}>
             <button
               type="button"
               class="flex h-7 w-full shrink-0 items-center rounded-[6px] ps-8 pe-2 text-start text-12-regular text-v2-text-text-muted hover:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none focus-visible:bg-v2-overlay-simple-overlay-hover"
-              onClick={props.onRevealMore}
+              aria-expanded={false}
+              onClick={props.onShowMore}
             >
-              {language.plural("sidebar.workspace.sessions.more", hiddenSessionCount(props.row.sessions.length))}
+              {language.plural("sidebar.workspace.sessions.more", remainingHidden(props.row.sessions.length, props.watermark))}
             </button>
           </Show>
-          <Show when={props.revealed && props.row.sessions.length > SESSIONS_PER_PROJECT}>
+          <Show
+            when={props.watermark >= props.row.sessions.length && props.row.sessions.length > SESSION_WATERMARK_BASE}
+          >
             <button
               type="button"
               class="flex h-7 w-full shrink-0 items-center rounded-[6px] ps-8 pe-2 text-start text-12-regular text-v2-text-text-muted hover:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none focus-visible:bg-v2-overlay-simple-overlay-hover"
-              onClick={props.onRevealLess}
+              aria-expanded={true}
+              onClick={props.onShowLess}
             >
               {language.t("sidebar.workspace.sessions.less")}
             </button>
