@@ -23,7 +23,11 @@
   2. 同一 draft 内引用多个同名文件时，chip 各自显示最短区分后缀（彼此可区分），且每个 chip 的 hover/title 仍是完整路径
   3. 用户在已发消息中看到 @ 文件引用渲染为 basename；同条消息内多个同名文件时显示最短区分后缀，title/hover 显示原始完整路径
   4. 提交后的消息正文与协议 wire 层仍写全路径（TUI 等其他端打开同一会话看到全路径，行为不变）
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 06-01-PLAN.md — mentionLabels 纯函数（basename+最短区分后缀）+ 已发消息渲染接线（MENT-02）
+- [ ] 06-02-PLAN.md — composer chip 显示缩短 + parse/match 双回路保全（MENT-01）
 **UI hint**: yes
 
 ### Phase 7: 会话列表水位线
@@ -42,5 +46,5 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 6. @ 引用短路径 | 0/TBD | Not started | - |
+| 6. @ 引用短路径 | 0/2 | Not started | - |
 | 7. 会话列表水位线 | 0/TBD | Not started | - |
