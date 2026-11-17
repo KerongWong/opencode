@@ -42,6 +42,10 @@ gaps:
         issue: "第 15 行 appNames、第 22 行 appIDs 的显式 Record<string, string> 注解触发 anti-slop(no-known-value-widening)；这是上游既有写法，但本阶段触碰了该文件，lint-changed 因此把它算进改动集。"
     missing:
       - "用 satisfies / 推断替代 open dictionary 注解，重跑 bun script/lint-changed.ts upstream/dev 至 0 problem。"
+audit_acknowledged:
+  milestone: v2.1
+  at: 2026-11-17
+  status: gaps_found
 ---
 
 # Phase 3: 上游触点收敛与打包隔离 Verification Report

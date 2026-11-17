@@ -1,28 +1,23 @@
 {
   "contract": "1.0.0",
   "flavor": "core",
-  "milestone": "v2.1",
+  "milestone": "v2.1 — workspace-sidebar 会话行状态与交互增强",
   "phases": [
     {
-      "number": "1",
-      "name": "登记表数据模型与纯函数",
+      "number": "4",
+      "name": "会话行状态与时间标签",
       "status": "complete"
     },
     {
-      "number": "2",
-      "name": "侧栏渲染与会话投影",
+      "number": "5",
+      "name": "Add-folder 跳转与会话列表折叠",
       "status": "complete"
-    },
-    {
-      "number": "3",
-      "name": "上游触点收敛与打包隔离",
-      "status": "pending"
     }
   ],
   "next": {
-    "command": "/gsd-discuss-phase",
-    "label": "Discuss the first phase",
-    "reason": "Project initialized — plan your first phase"
+    "command": "/gsd-progress",
+    "label": "Show progress",
+    "reason": "Unsure of state — showing progress"
   },
-  "updated_at": "2026-11-17T06:04:22.751Z"
+  "updated_at": "2026-11-17T07:46:44.616Z"
 }
