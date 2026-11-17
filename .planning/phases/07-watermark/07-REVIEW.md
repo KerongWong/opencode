@@ -14,7 +14,9 @@ findings:
   warning: 1
   info: 2
   total: 4
-status: issues_found
+status: clean
+re_reviewed: 2026-11-18T00:00:00Z
+re_review_verdict: all findings resolved by commits 204f1b1490, 7162220722, bb0c65671b; no new defects introduced
 ---
 
 # Phase 07: Code Review Report
@@ -22,7 +24,18 @@ status: issues_found
 **Reviewed:** 2026-11-18
 **Depth:** standard
 **Files Reviewed:** 5
-**Status:** issues_found
+**Status:** clean (re-reviewed 2026-11-18 — see Re-Review Note)
+
+## Re-Review Note (2026-11-18, iteration 2)
+
+Re-reviewed fix commits `204f1b1490` (CR-01/WR-01), `7162220722` (IN-01), `bb0c65671b` (IN-02). **Verdict: clean — all four findings resolved, no new defects introduced.**
+
+- **CR-01 — resolved.** The driver (`sidebar.tsx:349-384`) now computes `requiredRowWatermark` over **every** session in each expanded ready row, with statuses derived via the shared pure `rowSessionStatus` (`session-row.tsx:42-63`) rather than mounted-row reporting. A `working`/`approval`/`input`/`unread` session below the watermark now lifts it without a click. The `statuses` store, `setSessionStatus`, `onStatusChange`, and the reporting `createEffect` are fully removed (repo grep: zero hits in `workspace-sidebar`). All status reads stay in the effect's tracked region (only the watermark writes are in `untrack`, `sidebar.tsx:375-383`), so a hidden session turning working re-runs the driver. Regression test "a working session below the baseline watermark raises the row" (`sessions.test.ts:389-397`) fails on the old design by construction.
+- **WR-01 — resolved.** Facet 1 (stale re-raise after Show less): moot, the stale-state path is deleted; the only residual re-raise comes from *live-derived* genuinely-attention sessions, which is the locked COLL-04 behavior and dsh-aligned, as the original review acknowledged. Facet 2 (fold reset): the driver skips non-expanded rows (`sidebar.tsx:360`), so a folded row's watermark stays at its fold-reset baseline and re-derives from live data on re-expansion.
+- **IN-01 — resolved.** Tautological test deleted; `7162220722` removes it and the now-unused `SESSION_WATERMARK_BASE` import from the test file. The `undefined → baseline` path remains covered with a literal assertion (`sessions.test.ts:299-301`).
+- **IN-02 — resolved.** `sessions.ts:263` hoists `const ready: RowSessions = { status: "ready", sessions: result.data }`, stored at L265 and passed to `needsAvailabilityProbe(ready)` at L273 — no store re-read, no non-null assertion.
+- **No new defects.** The `rowSessionStatus` extraction is byte-faithful to the old memo logic (verified against the fix-commit diff); `settings`/`createEffect`/`onCleanup` imports in `session-row.tsx` all remain in use; driver gating (`expanded`, `ready`-only rows via `requiredRowWatermark`'s status guard) is correct.
+- **Verification re-run locally:** `bun test --conditions=solid --isolate --preload ../ui/test/solid-jsx.ts --preload ./happydom.ts src/workspace-sidebar/` → **144 pass / 0 fail** (matches the fix report); `bun check --no-script` on the four touched files → no type errors in 601 files.
 
 ## Summary
 
