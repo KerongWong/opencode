@@ -86,7 +86,7 @@ export function sessionsOf(rows: Record<RowKey, RowSessions>, key: RowKey) {
 }
 
 /** How many sessions a project shows before "show more" (COLL-01 default). */
-const SESSIONS_PER_PROJECT = 5
+export const SESSIONS_PER_PROJECT = 5
 
 /**
  * COLL-01: how much of a row's session list is on screen. A revealed row shows everything;

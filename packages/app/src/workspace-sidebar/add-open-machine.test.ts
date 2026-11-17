@@ -16,6 +16,7 @@ describe("transitionAddOpen", () => {
   test("awaiting + ready with sessions opens the most recent", () => {
     const awaiting = transitionAddOpen(INITIAL_ADD_OPEN_STATE, { type: "registered", key: "row-a" }).state
     const recent = { id: "s1" }
+
     const { state, effects } = transitionAddOpen(awaiting, {
       type: "sessions.ready",
       attempt: 1,

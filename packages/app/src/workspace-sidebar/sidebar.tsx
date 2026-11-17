@@ -4,7 +4,7 @@ import { isSortable, useSortable } from "@dnd-kit/solid/sortable"
 import { Accessibility, Feedback, PointerActivationConstraints } from "@dnd-kit/dom"
 import { RestrictToVerticalAxis } from "@dnd-kit/abstract/modifiers"
 import type { SessionInfo } from "@opencode/client/promise"
-import { createEffect, createMemo, on, onCleanup, onMount, Show } from "solid-js"
+import { createEffect, createMemo, createSignal, on, onCleanup, onMount, Show, untrack } from "solid-js"
 import { createStore } from "solid-js/store"
 import { Button } from "@opencode/ui/button"
 import { useDialog } from "@opencode/ui/context/dialog"
@@ -23,12 +23,19 @@ import { createProjectSessionActions } from "@/shell/tabs/project-sessions"
 import { useTabs } from "@/shell/tabs/tabs"
 import { createSidebarActivityListener } from "@/shell/titlebar/sidebar-organized"
 import { useDirectoryPicker } from "@/workspaces/selection/picker"
+import {
+  ADD_OPEN_WATCH_TIMEOUT_MS,
+  INITIAL_ADD_OPEN_STATE,
+  transitionAddOpen,
+  type AddOpenEffect,
+  type AddOpenEvent,
+} from "./add-open-machine"
 import { WorkspaceRemoveDialog, WorkspaceRenameDialog } from "./dialogs"
 import { detectHostPlatform, directoryKey, hostPlatform, visible, type WorkspaceEntry } from "./registry"
 import { SessionRow } from "./session-row"
 import type { SessionRowStatus } from "./session-status"
-import { createWorkspaceSessions, sessionsOf } from "./sessions"
-import { createWorkspaceRegistry } from "./store"
+import { createWorkspaceSessions, hiddenSessionCount, sessionsOf, SESSIONS_PER_PROJECT, shownSessions } from "./sessions"
+import { createWorkspaceRegistry, createWorkspaceUiState } from "./store"
 
 /**
  * The registered workspaces of the selected server. Keyed on the connection, so switching servers
@@ -119,6 +126,88 @@ function WorkspaceSidebarBody(props: { conn: ServerConnection.Any }) {
   // Undefined deletes the key, so the registry shrinks back when a row stops working.
   const setRowWorking = (sessionID: string, value: boolean) => setWorking(sessionID, value ? true : undefined)
 
+  const uiState = createWorkspaceUiState(servers.scope(serverKey))
+
+  // NAV-01 driver: the machine decides, this edge acts. The watch effect below is owned by the
+  // `awaiting` state (nested effects die with their parent's re-run), so watch.start/watch.stop
+  // effects need no driver action of their own.
+  const [addOpen, setAddOpen] = createSignal(INITIAL_ADD_OPEN_STATE)
+
+  let addOpenDirectory: string | undefined
+
+  const dispatchAddOpen = (event: AddOpenEvent) =>
+    untrack(() => {
+      const previous = addOpen()
+      const next = transitionAddOpen(previous, event)
+
+      if (next.state !== previous) setAddOpen(next.state)
+
+      next.effects.forEach(runAddOpenEffect)
+    })
+
+  const runAddOpenEffect = (effect: AddOpenEffect) => {
+    // watch.start / watch.stop are acted on by the state-driven watch effect below.
+    if (effect.type !== "open.new" && effect.type !== "open.recent") return
+
+    const directory = addOpenDirectory
+
+    if (effect.type === "open.recent") {
+      const session = directory
+        ? sessionsOf(sessions.rows(), directoryKey(directory, host)).sessions.find(
+            (item) => item.id === effect.session.id,
+          )
+        : undefined
+
+      if (!directory || !session) return void dispatchAddOpen({ type: "open.failed", attempt: effect.attempt })
+
+      try {
+        actions.openProjectSession(props.conn, directory, session, { preview: true })
+        dispatchAddOpen({ type: "opened", attempt: effect.attempt })
+      } catch {
+        dispatchAddOpen({ type: "open.failed", attempt: effect.attempt })
+      }
+
+      return
+    }
+
+    if (!directory) return void dispatchAddOpen({ type: "open.failed", attempt: effect.attempt })
+
+    try {
+      actions.openProjectNewSession(props.conn, directory)
+      dispatchAddOpen({ type: "opened", attempt: effect.attempt })
+    } catch {
+      dispatchAddOpen({ type: "open.failed", attempt: effect.attempt })
+    }
+  }
+
+  // Watch lifecycle: re-runs whenever the machine state changes. While awaiting a row, a nested
+  // effect (owned by this run, disposed on re-run) dispatches `sessions.ready`; the timeout bounds
+  // the wait so a row that never reads ready fails silently instead of waiting forever.
+  createEffect(() => {
+    const state = addOpen()
+
+    if (state.type !== "awaiting") return
+
+    const { attempt, key } = state
+
+    const timer = setTimeout(() => dispatchAddOpen({ type: "watch.timed-out", attempt }), ADD_OPEN_WATCH_TIMEOUT_MS)
+
+    onCleanup(() => clearTimeout(timer))
+
+    createEffect(
+      on(
+        () => {
+          const row = sessionsOf(sessions.rows(), key)
+
+          return row.status === "ready" ? row.sessions : undefined
+        },
+        (ready) => {
+          if (ready !== undefined) dispatchAddOpen({ type: "sessions.ready", attempt, sessions: ready })
+        },
+      ),
+    )
+  })
+
   let scroller: HTMLDivElement | undefined
   let restoreFrame = 0
   let scrollFrame = 0
@@ -197,6 +286,12 @@ function WorkspaceSidebarBody(props: { conn: ServerConnection.Any }) {
         const entry = registry.register(directory)
 
         if (!entry) return
+
+        // NAV-01: expand the new row and let the machine open its most recent session (or a new
+        // draft once the row reads ready).
+        addOpenDirectory = entry.directory
+        setUi("expanded", directoryKey(entry.directory, host), true)
+        dispatchAddOpen({ type: "registered", key: directoryKey(entry.directory, host) })
 
         void sessions.probeSpelling(entry).then((spelling) => {
           if (spelling) registry.adoptDirectory(entry.directory, spelling)
@@ -287,6 +382,9 @@ function WorkspaceSidebarBody(props: { conn: ServerConnection.Any }) {
                       isActive={isActive}
                       now={now}
                       onWorkingChange={setRowWorking}
+                      revealed={uiState.isRevealed(key())}
+                      onRevealMore={() => uiState.reveal(key())}
+                      onRevealLess={() => uiState.conceal(key())}
                       onOpen={(session) =>
                         actions.openProjectSession(props.conn, session.location.directory, session, { preview: true })
                       }
@@ -326,6 +424,9 @@ function WorkspaceRow(props: {
   isActive: (sessionID: string) => boolean
   now: (status: SessionRowStatus) => number
   onWorkingChange: (sessionID: string, working: boolean) => void
+  revealed: boolean
+  onRevealMore: () => void
+  onRevealLess: () => void
   onOpen: (session: SessionInfo) => void
 }) {
   const language = useLanguage()
@@ -430,7 +531,7 @@ function WorkspaceRow(props: {
               {language.t("sidebar.workspace.sessions.empty")}
             </div>
           </Show>
-          <Key each={props.row.sessions} by={(session) => session.id}>
+          <Key each={shownSessions(props.row.sessions, props.revealed)} by={(session) => session.id}>
             {(session) => (
               <SessionRow
                 server={props.server}
@@ -443,6 +544,24 @@ function WorkspaceRow(props: {
               />
             )}
           </Key>
+          <Show when={hiddenSessionCount(props.row.sessions.length) > 0 && !props.revealed}>
+            <button
+              type="button"
+              class="flex h-7 w-full shrink-0 items-center rounded-[6px] ps-8 pe-2 text-start text-12-regular text-v2-text-text-muted hover:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none focus-visible:bg-v2-overlay-simple-overlay-hover"
+              onClick={props.onRevealMore}
+            >
+              {language.plural("sidebar.workspace.sessions.more", hiddenSessionCount(props.row.sessions.length))}
+            </button>
+          </Show>
+          <Show when={props.revealed && props.row.sessions.length > SESSIONS_PER_PROJECT}>
+            <button
+              type="button"
+              class="flex h-7 w-full shrink-0 items-center rounded-[6px] ps-8 pe-2 text-start text-12-regular text-v2-text-text-muted hover:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none focus-visible:bg-v2-overlay-simple-overlay-hover"
+              onClick={props.onRevealLess}
+            >
+              {language.t("sidebar.workspace.sessions.less")}
+            </button>
+          </Show>
         </div>
       </Show>
     </div>

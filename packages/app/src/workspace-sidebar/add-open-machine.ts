@@ -28,15 +28,16 @@ export type AddOpenEffect =
 
 export const INITIAL_ADD_OPEN_STATE: AddOpenState = { type: "idle" }
 
+// A named owner contract: every transition returns the same result shape, and `unchanged` returns
+// the identical state object so no signal writes when an event does not apply.
+export type AddOpenResult = { state: AddOpenState; effects: AddOpenEffect[] }
+
 // A row that stays loading past this lands on `failed` silently, so the sidebar never waits forever.
 export const ADD_OPEN_WATCH_TIMEOUT_MS = 10_000
 
-const unchanged = (state: AddOpenState) => ({ state, effects: [] as AddOpenEffect[] })
+const unchanged = (state: AddOpenState): AddOpenResult => ({ state, effects: [] })
 
-export function transitionAddOpen(
-  state: AddOpenState,
-  event: AddOpenEvent,
-): { state: AddOpenState; effects: AddOpenEffect[] } {
+export function transitionAddOpen(state: AddOpenState, event: AddOpenEvent): AddOpenResult {
   if (event.type === "disposed") {
     return {
       state: INITIAL_ADD_OPEN_STATE,
