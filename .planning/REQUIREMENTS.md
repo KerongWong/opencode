@@ -10,14 +10,14 @@
 
 ### 时间标签 (TIME)
 
-- [ ] **TIME-01**: 用户可以在每个会话行看到相对更新时间标签：基于 `session.time.updated`，<60s 显示 "now"，<60m 显示 "Nm"，<24h 显示 "Nh"，否则 "Nd"
-- [ ] **TIME-02**: 时间标签随时间自动刷新：任一可见会话处于 working 时秒级刷新，否则分钟级刷新；没有 working 会话时不运行秒级定时器
+- [x] **TIME-01**: 用户可以在每个会话行看到相对更新时间标签：基于 `session.time.updated`，<60s 显示 "now"，<60m 显示 "Nm"，<24h 显示 "Nh"，否则 "Nd"
+- [x] **TIME-02**: 时间标签随时间自动刷新：任一可见会话处于 working 时秒级刷新，否则分钟级刷新；没有 working 会话时不运行秒级定时器
 
 ### 状态标记 (STAT)
 
-- [ ] **STAT-01**: 用户可以在会话行看到状态标记，状态集合为 failed / approval（等待审批）/ input（等待提问）/ working / unread / idle（读完且无异常，无标记）
-- [ ] **STAT-02**: 多状态并存时按优先级裁决只显示一个标记：failed > approval > input > working > unread > idle；裁决逻辑是纯函数，可被单测逐组合断言
-- [ ] **STAT-03**: 标记的图标与颜色：failed→close/danger，approval→circle-exclamation/warning，input→help/warning，working→ActivityRing/info，unread→check/success；颜色只用 `text-v2-state-fg-*` 语义 token
+- [x] **STAT-01**: 用户可以在会话行看到状态标记，状态集合为 failed / approval（等待审批）/ input（等待提问）/ working / unread / idle（读完且无异常，无标记）
+- [x] **STAT-02**: 多状态并存时按优先级裁决只显示一个标记：failed > approval > input > working > unread > idle；裁决逻辑是纯函数，可被单测逐组合断言
+- [x] **STAT-03**: 标记的图标与颜色：failed→close/danger，approval→circle-exclamation/warning，input→help/warning，working→ActivityRing/info，unread→check/success；颜色只用 `text-v2-state-fg-*` 语义 token
 
 ### Add-folder 跳转 (NAV)
 
@@ -54,14 +54,18 @@ Roadmap: `.planning/ROADMAP.md` — milestone v2.1「workspace-sidebar 会话行
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TIME-01 | Phase 4 | Pending |
-| TIME-02 | Phase 4 | Pending |
-| STAT-01 | Phase 4 | Pending |
-| STAT-02 | Phase 4 | Pending |
-| STAT-03 | Phase 4 | Pending |
+| TIME-01 | Phase 4 | Complete |
+| TIME-02 | Phase 4 | Complete |
+| STAT-01 | Phase 4 | Complete |
+| STAT-02 | Phase 4 | Complete |
+| STAT-03 | Phase 4 | Complete |
 | NAV-01 | Phase 5 | Pending |
 | COLL-01 | Phase 5 | Pending |
 | COLL-02 | Phase 5 | Pending |
+| UIX-02 | — | Deferred (v2) |
+| UIX-03 | — | Deferred (v2) |
+| STY-01 | — | Deferred (v2) |
+| STAT-04 | — | Deferred (v2) |
 
 **Coverage:**
 - v1 requirements: 9 total

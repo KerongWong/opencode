@@ -33,15 +33,15 @@
 - ✓ 会话行状态：审批 / 等待输入 / 运行中 / 失败 / 完成，以及相对时间、`dir="auto"` 截断
 - ✓ 行拖拽排序、顺序持久化、滚动位置恢复（v2.0 在新模块内重做，行为契约不变）
 - ✓ v2.0 Phase 01/02 的实现（登记表模型 + 侧栏渲染与会话投影）；Phase 03（触点收敛与打包隔离）随 v2.1 启动归档，验收状态见 `.planning/milestones/v2.0-phases/03-seams-and-package/`
+- ✓ 会话行状态标记（failed/approval/input/working/unread 优先级裁决 + 语义 token 颜色，单一真相 session-status.ts）— Phase 4
+- ✓ 会话行相对时间标签（now/Nm/Nh/Nd 分桶 + working 秒级/其余分钟级双粒度时钟）— Phase 4
 
 ### Active
 
 <!-- v2.1 待实现。REQ-ID 在 REQUIREMENTS.md 定义后回填。 -->
 
-- [ ] 会话行相对时间标签（now/分/时/天缩写，双粒度自动刷新）— v2.1
-- [ ] 会话行状态标记（failed/approval/input/working/unread，语义 token 颜色 + 优先级裁决）— v2.1
-- [ ] Add folder 后自动展开并打开会话（最近一个或新建）— v2.1
-- [ ] 会话列表折叠（默认 5 条，Show more/less，展开态按 project key 持久化）— v2.1
+- [ ] Add folder 后自动展开并打开会话（最近一个或新建）— NAV-01（Phase 5）
+- [ ] 会话列表折叠（默认 5 条，Show more/less，展开态按 project key 持久化）— COLL-01/02（Phase 5）
 
 ### Out of Scope
 

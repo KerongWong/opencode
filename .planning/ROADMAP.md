@@ -29,7 +29,7 @@ v2.1 在 v2.0 的模块内增强会话行：移植 `origin/projects-sidebar` 蓝
 
 v2.1 延续 v2.0 编号，从 Phase 4 开始。
 
-- [ ] **Phase 4: 会话行状态与时间标签** - 新行组件 `session-row.tsx` + 纯函数 `session-status.ts`（状态裁决 + 时间桶）+ 双粒度时钟 driver；全部语义修复前失败的纯单测钉住
+- [x] **Phase 4: 会话行状态与时间标签** - 新行组件 `session-row.tsx` + 纯函数 `session-status.ts`（状态裁决 + 时间桶）+ 双粒度时钟 driver；全部语义修复前失败的纯单测钉住 (completed 2026-11-17)
 - [ ] **Phase 5: Add-folder 跳转与会话列表折叠** - `add-open-machine.ts`（注册→等待会话→打开/新建）+ 会话列表默认 5 条与 Show more/less + 展开态持久化
 
 ## Phase Details
@@ -63,5 +63,5 @@ Phases execute in numeric order: 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 4. 会话行状态与时间标签 | 0/TBD | Not started | - |
+| 4. 会话行状态与时间标签 | 1/1 | Complete    | 2026-11-17 |
 | 5. Add-folder 跳转与会话列表折叠 | 0/TBD | Not started | - |
