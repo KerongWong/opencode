@@ -23,6 +23,14 @@
 
 **SPEC:** v2.1 无独立设计文档；范围与默认值以 milestone 启动时的任务简报为准（四项改动 + 四条待确认项默认值）。
 
+**Status (2026-11-17):** shipped — Phase 4/5 完成，审计 passed（8/8 需求），归档至 `.planning/milestones/v2.1-*`。
+
+## Next Milestone Goals
+
+<!-- 下一个 milestone 由 /gsd-new-milestone 重新定义；候选种子见 REQUIREMENTS 归档的 v2 延期项（UIX-02 真分页、UIX-03 行级操作、STY-01、STAT-04）。 -->
+
+（待定）
+
 ## Requirements
 
 ### Validated
@@ -59,6 +67,9 @@
 ## Context
 
 - **行源**：客户端登记表，`Persist.serverGlobal(serverScope, "workspace-registry.v1")`；桌面端落 `drafts.sqlite`（经 IPC），Web 落 `localStorage`。
+- **v2.1 新增持久化**：`workspace-sidebar-ui.v1`（`{ revealed: string[] }`，会话列表 Show more/less 展开态，rowKey = directoryKey）。
+- **v2.1 新模块**：`session-status.ts`（状态裁决/时间分桶/标记映射纯函数）、`session-row.tsx`（行组件）、`add-open-machine.ts`（Add 跳转状态机）；`sidebar.tsx` 承载双粒度时钟与机器 driver。
+- **状态优先级**（v2.1 产品决定，与蓝本不同）：failed > approval > input > working > unread > idle；failed 不要求 unread；unread 用 check/success 标记。时间标签以 `session.time.updated` 为基准（蓝本 `age()` 同规则）。
 - **会话投影**：`session.list({ directory, limit, order })` 已存在于协议（`packages/schema/src/session.ts` 的 `ListFilter.directory`），服务端按 `eq(directory)` 过滤，默认含归档、支持 cursor 分页。**不要**复用 v1.0 的全局 50 行索引。
 - **目录身份**：`session.directory` 只做 `path.normalize` + 去尾分隔符（Windows 上 `\`→`/`），**不做 realpath**；客户端没有 `fs`，归一只做分隔符/尾斜杠/Windows 大小写。符号链接别名会登记成两个工作区（已承认的残余）。
 - **项目身份**：git 身份，同一仓库的多份本地拷贝共享 `projectID`（`packages/core/src/project.ts`）。因此标题**不能**写进 `project.name`。

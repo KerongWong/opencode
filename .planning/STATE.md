@@ -2,19 +2,18 @@
 gsd_state_version: "1.0"
 milestone: v2.1
 milestone_name: workspace-sidebar 会话行状态与交互增强
-current_phase: 05
-status: completed
+status: Awaiting next milestone
 stopped_at: Phase 05 complete — all phases complete
-last_updated: "2026-11-17T07:29:50.602Z"
+last_updated: "2026-11-17T07:46:44.533Z"
 last_activity: 2026-11-17
-last_activity_desc: Phase 05 complete
-state_head: 19894e3eca993a8441e2bfa87f990a33e048ec95
+last_activity_desc: Milestone v2.1 completed and archived
+state_head: 08b75669abd4ce7214d520dd1bbcec36c6d6adb7
 progress:
   total_phases: 2
   completed_phases: 2
   total_plans: 2
   completed_plans: 2
-  percent: 100
+current_phase: 05
 ---
 
 # Project State
@@ -29,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-11-13)
 
 ## Current Position
 
-Phase: 05
-Plan: Not started
-Status: All phases complete
-Last activity: 2026-11-17 — Phase 05 complete
+Phase: Milestone v2.1 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-11-17 — Milestone v2.1 completed and archived
 
 ## Performance Metrics
 
@@ -109,10 +108,14 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 | Category | Item | Status | Deferred At | Milestone |
 |----------|------|--------|-------------|-----------|
-| *(none)* | | | | |
+| verification_gap | Phase 03（v2.0 归档）03-VERIFICATION.md gaps_found：触点收敛与打包隔离未验收随 v2.1 启动归档 | acknowledged | 2026-11-17 | v2.1 |
 
 ## Session Continuity
 
 Last session: 2026-11-13T17:57:11.626Z
 Stopped at: Phase 05 complete — all phases complete
 Resume file: None
+
+## Operator Next Steps
+
+- Start the next milestone with /gsd-new-milestone
