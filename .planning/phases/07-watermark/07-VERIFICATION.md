@@ -1,8 +1,8 @@
 ---
 phase: 07-watermark
-verified: 2026-11-18T02:45:00Z
-status: human_needed
-score: 5/8 must-haves verified
+verified: 2026-11-18T12:00:00Z
+status: passed
+score: 4/4 success criteria verified
 covered_files:
   - ".planning/phases/07-watermark/07-01-PLAN.md"
   - ".planning/phases/07-watermark/07-01-SUMMARY.md"
@@ -14,86 +14,83 @@ covered_files:
   - "packages/app/src/workspace-sidebar/sidebar.tsx"
   - "packages/app/src/workspace-sidebar/store.test.ts"
   - "packages/app/src/workspace-sidebar/store.ts"
-covered_digest: "v4:sha256:b16c10d303447300e5afab39fce113caa8a3a103bea0d15fb02d2f623f570b69"
-behavior_unverified: 3
+covered_digest: "v4:sha256:e9afdeea97dd6db902cd14b4a45be8627523a5329d9b09aab58f603686ad9682"
+behavior_unverified: 0
 overrides_applied: 0
-behavior_unverified_items:
-  - truth: "前 50 条内 working/approval/input/unread/当前会话无需点击即可见（含位于当前水位之下、从未挂载 SessionRow 的会话）"
-    test: "在 dev 服务器展开一个有 >10 条会话的工作区行，让第 6 条之后的会话进入 working/approval/input/unread（或激活它），观察其无需点击即出现"
-    expected: "水位自动抬升到该会话索引+1，会话行立即可见"
-    why_human: "driver 是 sidebar.tsx 的 createEffect（JSX 驱动层），纯函数层（requiredWatermark/requiredRowWatermark）已测试，但 render 期实际抬升无任何组件级测试；presence+wiring 不能证明运行期状态迁移"
-  - truth: "水位 render 期单调提升：注意力会话完成、新会话入列不降低已抬升水位；降低只发生在折叠行与 Show less"
-    test: "抬升水位使远端 working 会话可见后，等待其完成；继续触发其他行重渲染（切换路由/新状态上报）"
-    expected: "水位保持抬升值不回落；无信号churn（稳态零写入）"
-    why_human: "单调性纯半边（raisedWatermark）已测试，driver 的写门控（严格大于比较）是静态可验证的，但运行期 effect 不回落/不自触发依赖 Solid 响应图的实际执行，无测试覆盖"
-  - truth: "折叠工作区行再展开后，该行的会话列表回到基线水位 5"
-    test: "展开一个有 20 条会话的行，点击 Show more 到全展开，折叠该行，再展开"
-    expected: "重新展开后只显示前 5 条（基线水位），watermark key 已被删除"
-    why_human: "toggle 折叠分支的 setRowWatermark(key, undefined) 已接线（sidebar.tsx:289），但折叠→重置的状态转换只在代码路径中可见，无 store 级测试"
-human_verification:
-  - test: "端到端点击流：bun dev serve --port 4096 + packages/app bun dev -- --port 4444，展开一个有 ≥20 条会话的工作区行"
-    expected: "初始显示 5 条，按钮显示 'Show 15 more'；点击 → 10 条 'Show 10 more' → … → 剩余 ≤5 时一步全展开，按钮变 'Show less'；点击 'Show less' 一步回到 5 条"
-    why_human: "纯函数表测试（8 条）已证明 nextWatermark/remainingHidden/shownByWatermark 语义，但按钮点击 → store 写 → 重渲染的完整链路无组件级测试（plan 明确安排在 07-02 之后手工验收）"
-  - test: "注意力自动抬升：让第 6 条之后的会话进入 working/待交互状态（或激活远端会话），并观察其完成后水位行为"
-    expected: "该会话无需点击即可见；完成后水位不回落；稳态无持续重渲染"
-    why_human: "render 期单调抬升 driver（sidebar.tsx:349-384）无组件级测试；CR-01 修复后 driver 从行数据经共享 rowSessionStatus 推导全部会话状态，该修复只有纯函数回归测试覆盖"
-  - test: "折叠重置：全展开一行后折叠再展开"
-    expected: "该行回到基线水位 5"
-    why_human: "折叠重置的 undefined-deletes-key 路径只有代码路径证据，无运行期测试"
+re_verification:
+  previous_status: human_needed
+  previous_score: 5/8
+  gaps_closed:
+    - "三条运行期行为 truth（自动抬升、只升不降、折叠重置）由用户在 OpenCode Test desktop 包中手工验收全部通过"
+    - "COLL-03 点击链路端到端由用户手工验收通过"
+  gaps_remaining: []
+  regressions: []
 ---
 
 # Phase 7: 会话列表水位线 Verification Report
 
 **Phase Goal:** workspace-sidebar 会话列表从二元持久化展开（v2.1 `revealed: string[]`）替换为 dsh 式分批水位：基线 5、每次 +5、剩余 ≤5 一步全展开、注意力自动抬升（只升不降）、折叠行重置、内存态不持久化。
-**Verified:** 2026-11-18T02:45:00Z
-**Status:** human_needed
-**Re-verification:** No — initial verification
+**Verified:** 2026-11-18T12:00:00Z
+**Status:** passed
+**Re-verification:** Yes — after three user-directed semantic amendments (2026-11-18)
+
+## Amendments (2026-11-18)
+
+首次验证（human_needed, 5/8）之后，用户定案三条语义修正，均以 commit 落地（均为 HEAD 祖先，git merge-base 确认）：
+
+| Amendment | Commit | 落点 |
+|-----------|--------|------|
+| 1. 未读会话**不**抬水位；自动抬升仅覆盖 working / approval / input / 当前会话，前 50 条内（含） | `adb828a864` | `sessions.ts:135-141` `requiredWatermark` 注意力集 = working/approval/input，`isActive` 独立分支；unread 不在集合内（doc 注释 L130-133 明确记录用户定案）；测试 `sessions.test.ts:357-360, 365` |
+| 2. **无 "Show less" 按钮**：底部按钮只读 "Show N more"（剩余隐藏数），行全展开后按钮消失；收起仅通过折叠工作区行 | `6f8627c257` | `sidebar.tsx` 中 `onShowLess` prop、`sessions.less` key 引用全部移除（workspace-sidebar 模块 grep `less` 仅剩代码注释 "there is no 'Show less'"）；按钮仅在 `remainingHidden(...) > 0` 时渲染（sidebar.tsx:635-644） |
+| 3. 折叠重置基线 = `max(5, 注意力需求)`，对 render 期单调再抬升稳定 | `ff1b92d019` | `sessions.ts:149-151` `watermarkBaseline(required) = max(SESSION_WATERMARK_BASE, required)`；折叠分支 `setRowWatermark(key, watermarkBaseline(rowRequirement(key)))`（sidebar.tsx:314）；测试 `sessions.test.ts:340-345`（floor 5 / 需求 7→7 / 50→50） |
+
+三条修正均更新了既有测试（unread 零抬升、watermarkBaseline 表、负门 grep），未新增重复覆盖。ROADMAP Phase 7 success criteria 与 REQUIREMENTS.md COLL-03/04/05 已同步改写为修正后语义。
+
+## 人工验收记录
+
+首次验证标记的 3 条 PRESENT_BEHAVIOR_UNVERIFIED truth + 3 项 human_verification（点击链路端到端、注意力自动抬升、折叠重置）由用户在 **OpenCode Test desktop 包**中手工验证，**四条 success criteria 全部通过**。因此 behavior_unverified 清零、human_verification 关闭，status → passed。
 
 ## Goal Achievement
 
-### Observable Truths
+### Success Criteria（ROADMAP Phase 7）
 
-| # | Truth | Status | Evidence |
-|---|-------|--------|----------|
-| 1 | 点击 "Show N more" 每次 +5；剩余 ≤5（含恰好 5）一步全展开；"Show less" 一步回基线 5（COLL-03） | ✓ VERIFIED | `sessions.ts:104-114 nextWatermark`（基线 5 / `total - current <= 5 → total` 边界等值含 / 永不回退）；`sidebar.tsx:466 onShowLess` 删 key 回基线；8 条水位表测试（sessions.test.ts:296-338）全绿 |
-| 2 | 按钮 count 显示剩余隐藏数，i18n key 复用零新增（COLL-03） | ✓ VERIFIED | `sidebar.tsx:634 language.plural("sidebar.workspace.sessions.more", remainingHidden(...))`；`remainingHidden` 钳制（sessions.ts:117-119）有测试；en.ts L941-943 文案 byte-for-byte 未变 |
-| 3 | 前 50 条内 working/approval/input/unread/当前会话自动抬升可见，含水位以下未挂载会话（COLL-04） | ⚠️ PRESENT_BEHAVIOR_UNVERIFIED | `requiredWatermark`（sessions.ts:133-139，50 含等值）与 `requiredRowWatermark`（L159-171，遍历行内**全部**会话）已测试含 CR-01 回归测试（L389-397）；driver（sidebar.tsx:349-384）经共享 `rowSessionStatus`（session-row.tsx:42-63）推导状态——CR-01 盲点的修复已在代码与 review re-verification（204f1b1490，clean）中确认；但 render 期实际抬升无组件级测试 |
-| 4 | 水位只升不降：注意力完成/新会话入列不回落；降低仅折叠与 Show less（COLL-04） | ⚠️ PRESENT_BEHAVIOR_UNVERIFIED | `raisedWatermark` 单调性 3 条测试；driver 写门控为静态严格比较 `if (raised > watermark(key)) setRowWatermark(...)`（sidebar.tsx:379-381），无无条件写分支；untrack 隔离写入——但运行期 effect 不回落/稳态零写无测试 |
-| 5 | 折叠工作区行重置该行水位（COLL-05） | ⚠️ PRESENT_BEHAVIOR_UNVERIFIED | `sidebar.tsx:288-289 toggle` 折叠分支 `setRowWatermark(key, undefined)`（undefined-deletes 惯例，对齐 setRowWorking）；driver 跳过折叠行（L360）保证折叠期间不被抬升——状态转换本身无运行期测试 |
-| 6 | 不再读写 `workspace-sidebar-ui.v1`；ui-state.ts 模块删除（COLL-05） | ✓ VERIFIED | `ui-state.ts` / `ui-state.test.ts` 不在磁盘（git rm，fb76d54715）；grep `ui-state\|UiState\|workspace-sidebar-ui` 于 packages/app/src 零命中（store.ts 唯一 persisted 调用是 `registryTarget` = workspace-registry.v1，L88） |
-| 7 | 水位为内存态：组件生命周期 createStore，刷新后回基线 5（COLL-05） | ✓ VERIFIED | `sidebar.tsx:119` 组件内 `createStore<Record<string, number | undefined>>({})`，无任何 persisted/Persist 调用；读缺省 `?? SESSION_WATERMARK_BASE`（L148）；不持久化即卸载回基线是静态可证的机制事实 |
-| 8 | workspace-registry.v1 持久化不受影响 | ✓ VERIFIED | `store.ts:87-123 createWorkspaceRegistry` 原样保留；store.test.ts 11 用例全绿；模块 doc 注释只命名存活 key |
+| # | Criterion | Status | Evidence |
+|---|-----------|--------|----------|
+| 1 | 点击 "Show N more" 每次 +5；剩余 ≤5（含恰好 5）一步全展开且按钮消失（无 "Show less"）；折叠工作区行再展开后回到基线水位 | ✓ VERIFIED | `sessions.ts:104-114 nextWatermark`（基线 5 / `total - current <= 5 → total` 边界等值含 / 全展开后不再移动）；按钮仅 `remainingHidden > 0` 时渲染（sidebar.tsx:635-644），count = 剩余隐藏数（`language.plural("sidebar.workspace.sessions.more", ...)`）；模块内无 onShowLess / sessions.less 引用（amendment 2）；`watermarkBaseline` 表测试 4 条（sessions.test.ts:340-345） |
+| 2 | 前 50 条（含）内 running / 待交互 / 当前会话无需点击即可见；水位 render 期单调提升，不因完成而回落 | ✓ VERIFIED | `requiredWatermark`（sessions.ts:135-141，`index <= 50` 含等值，注意力集 working/approval/input + isActive，**unread 排除**——amendment 1）；`requiredRowWatermark`（L171-183）遍历行内全部会话含未挂载者；driver（sidebar.tsx:364-394）经共享 `rowSessionStatus` 推导、untrack 写隔离、严格大于比较门控零稳态写；`raisedWatermark` 单调性 3 条测试；unread 零抬升 + 50 边界含等值测试（sessions.test.ts:357-366） |
+| 3 | 折叠工作区行再展开后该行回到基线水位（重置） | ✓ VERIFIED | 折叠分支 `setRowWatermark(key, watermarkBaseline(rowRequirement(key)))`（sidebar.tsx:306-318，amendment 3：基线 = max(5, 注意力需求)，重置对单调再抬升稳定）；driver 跳过折叠行（L380）；共享 `rowRequirement` 保证折叠与抬升同一需求口径（L284-304） |
+| 4 | 水位为内存态：刷新后回基线；不再读写 `workspace-sidebar-ui.v1` | ✓ VERIFIED | 组件内 `createStore`（sidebar.tsx，无任何 persisted 调用）；读缺省 `?? SESSION_WATERMARK_BASE`；`ui-state.ts` / `ui-state.test.ts` 不在磁盘；grep `ui-state\|UiState\|workspace-sidebar-ui` 于 packages/app/src 零命中；`workspace-registry.v1` 持久化原样（store.ts） |
 
-**Score:** 5/8 truths verified (3 present, behavior-unverified)
+**Score:** 4/4 success criteria verified（含 2026-11-18 三条用户修正后的最终语义）
 
 ### Required Artifacts
 
 | Artifact | Expected | Status | Details |
 |----------|----------|--------|---------|
-| `sessions.ts` | 水位纯函数与常量（基线/+5/≤5 一步全展开/Show less/注意力谓词/单调半边/行级需求） | ✓ VERIFIED | 常量 L90/L96；nextWatermark/remainingHidden/shownByWatermark/requiredWatermark/raisedWatermark/requiredRowWatermark 全部导出且无 stub |
-| `sessions.test.ts` | 水位 + 注意力表测试 | ✓ VERIFIED | watermark 8 条 + requiredWatermark 5 条 + raisedWatermark 3 条 + requiredRowWatermark 5 条；全文件 144 测试中零失败 |
-| `sidebar.tsx` | 内存水位 store + 按钮重接线 + 折叠重置 + 单调抬升 driver | ✓ VERIFIED | L119 store、L148-151 helper、L460-466 按钮接线、L288-289 折叠重置、L349-384 driver；无 shownSessions/hiddenSessionCount 残留 |
-| `session-row.tsx` | 共享 rowSessionStatus 纯函数 | ✓ VERIFIED | L42-63 导出，被 SessionRow memo（L113）与 sidebar driver（L364）双方消费；onStatusChange 回调通道已随 CR-01 修复移除 |
-| `store.ts` | 移除 createWorkspaceUiState 后只剩 registry | ✓ VERIFIED | ui-state import/工厂零引用；persisted 仅 registryTarget |
+| `sessions.ts` | 水位纯函数与常量（基线/+5/≤5 一步全展开/注意力谓词/单调半边/行级需求/重置基线） | ✓ VERIFIED | 常量 L90/L96；nextWatermark/remainingHidden/shownByWatermark/requiredWatermark/watermarkBaseline/raisedWatermark/requiredRowWatermark 全部导出且无 stub |
+| `sessions.test.ts` | 水位 + 注意力表测试 | ✓ VERIFIED | watermark 10 条（含 watermarkBaseline 4 条）+ requiredWatermark 6 条 + raisedWatermark 3 条 + requiredRowWatermark 5 条；unread 零抬升与 50 含等值边界覆盖 |
+| `sidebar.tsx` | 内存水位 store + 按钮重接线 + 折叠重置 + 单调抬升 driver | ✓ VERIFIED | onShowMore（L470-475）+ 按钮（L635-644）；折叠重置 watermarkBaseline（L314）；driver（L364-394）；无 onShowLess / shownSessions 残留 |
+| `session-row.tsx` | 共享 rowSessionStatus 纯函数 | ✓ VERIFIED | L42-63 导出，SessionRow memo 与 sidebar driver 双方消费 |
+| `store.ts` | 移除 createWorkspaceUiState 后只剩 registry | ✓ VERIFIED | persisted 仅 registryTarget |
 | `ui-state.ts` / `ui-state.test.ts` | 已删除 | ✓ VERIFIED | 文件不存在 |
 
 ### Key Link Verification
 
 | From | To | Via | Status | Details |
 |------|----|----|--------|---------|
-| Show more 按钮 | `sidebar.workspace.sessions.more` i18n key | `language.plural(key, remainingHidden(...))` | WIRED | sidebar.tsx:634；en.ts:941-942 文案未变 |
-| Show less 按钮 | `sidebar.workspace.sessions.less` i18n key | `language.t(key)` | WIRED | sidebar.tsx:646；en.ts:943 |
-| 折叠 toggle | watermarks store key 删除 | `setRowWatermark(key, undefined)` | WIRED | sidebar.tsx:289 |
-| 抬升 driver | session-status 裁决输出 | 共享 `rowSessionStatus`（session-row.tsx:42-63） | WIRED | sidebar.tsx:362-371；只读依赖，无第二份状态推导 |
-| driver 写路径 | watermarks store | untrack + 严格大于比较门控 | WIRED | sidebar.tsx:375-383；无无条件写分支 |
+| Show more 按钮 | `sidebar.workspace.sessions.more` i18n key | `language.plural(key, remainingHidden(...))` | WIRED | sidebar.tsx:642；en.ts:941-942 文案未变 |
+| 折叠 toggle | watermarks store 重置 | `setRowWatermark(key, watermarkBaseline(rowRequirement(key)))` | WIRED | sidebar.tsx:314（amendment 3） |
+| 抬升 driver | session-status 裁决输出 | 共享 `rowSessionStatus` | WIRED | sidebar.tsx:293-303, 364-394 |
+| driver 写路径 | watermarks store | untrack + 严格大于比较门控 | WIRED | sidebar.tsx:385-393；无无条件写分支 |
+| （已移除）Show less 按钮 | — | — | REMOVED | amendment 2：无 UI 路径、无 i18n 引用（en.ts L943 key 成为无引用遗留数据，非阻断） |
 
 ### Data-Flow Trace (Level 4)
 
 | Artifact | Data Variable | Source | Produces Real Data | Status |
 |----------|---------------|--------|--------------------|--------|
-| 会话行列表 | `props.row.sessions` → `shownByWatermark(...)` | `session.list({ directory, limit: 50 })`（sessions.ts:255-261） | 是 | ✓ FLOWING |
-| 按钮 count | `remainingHidden(row.sessions.length, watermark)` | 行长度（server 查询结果）+ 内存水位 | 是 | ✓ FLOWING |
-| 注意力抬升 | `requiredRowWatermark(row, statusOf, activeSession)` | `rowSessionStatus` 读 serverCtx 的 requests/busy/unread/outcome | 是 | ✓ FLOWING |
+| 会话行列表 | `props.row.sessions` → `shownByWatermark(...)` | `session.list({ directory, limit: 50 })`（sessions.ts:267-273） | 是 | ✓ FLOWING |
+| 按钮 count | `remainingHidden(row.sessions.length, watermark)` | 行长度（server 查询）+ 内存水位 | 是 | ✓ FLOWING |
+| 注意力抬升 | `requiredRowWatermark(row, statusOf, activeSession)` | `rowSessionStatus` 读 serverCtx requests/busy/unread/outcome | 是 | ✓ FLOWING |
 
 无静态兜底、无硬编码空数据。
 
@@ -101,22 +98,22 @@ human_verification:
 
 | Behavior | Command | Result | Status |
 |----------|---------|--------|--------|
-| workspace-sidebar 全模块测试 | `bun test --conditions=solid --isolate --preload ../ui/test/solid-jsx.ts --preload ./happydom.ts ./src/workspace-sidebar/`（packages/app） | 144 pass / 0 fail / 222 expect() calls，515ms | ✓ PASS |
-| 文件级类型门 | `bun check --no-script src/workspace-sidebar/{sidebar,sessions,session-row,store}.ts` | No type errors in 600 files | ✓ PASS |
-| 持久化负门（grep） | `rg "ui-state\|UiState\|workspace-sidebar-ui" packages/app/src` | 零命中（T-7-03 阻断性负门） | ✓ PASS |
-| 旧二元语义负门 | `rg "shownSessions\|hiddenSessionCount\|SESSIONS_PER_PROJECT\|createWorkspaceUiState" packages/app/src` | 零命中 | ✓ PASS |
-| ui-state 模块删除 | `ls packages/app/src/workspace-sidebar/` | ui-state.ts / ui-state.test.ts 不存在 | ✓ PASS |
-| 点击/抬升/折叠端到端运行期行为 | — | 无组件级测试可运行；plan 明确安排在整体验收手工 dev 验证 | ? SKIP → human |
+| workspace-sidebar 全模块测试 | `bun test --conditions=solid --isolate --preload ../ui/test/solid-jsx.ts --preload ./happydom.ts src/workspace-sidebar/`（packages/app） | 146 pass / 0 fail / 225 expect() calls，573ms | ✓ PASS |
+| 持久化负门（grep） | `rg "ui-state\|UiState\|workspace-sidebar-ui" packages/app/src` | 零命中 | ✓ PASS |
+| Show less 负门（grep） | `rg "onShowLess\|sessions\.less" packages/app/src/workspace-sidebar` | 零命中（仅注释 "there is no 'Show less'"） | ✓ PASS |
+| 未读抬升负门（代码 + 测试） | `requiredWatermark(0..7, "unread", false) === 0` | sessions.test.ts:357-360 通过 | ✓ PASS |
+| 折叠基线测试 | `watermarkBaseline(0/3/7/50)` | 5/5/7/50（sessions.test.ts:340-345） | ✓ PASS |
+| 端到端运行期行为（点击流 / 自动抬升 / 折叠重置） | 用户在 OpenCode Test desktop 包手工验收 | 四条 success criteria 全部通过（2026-11-18） | ✓ PASS (human) |
 
 ### Requirements Coverage
 
 | Requirement | Source Plan | Description | Status | Evidence |
 |-------------|------------|-------------|--------|----------|
-| COLL-03 | 07-01 | +5 增量 / ≤5 一步全展开 / Show less 回基线 / count=剩余隐藏数 | ✓ SATISFIED | 纯函数表测试 + 按钮接线 + i18n 复用（truth 1、2） |
-| COLL-04 | 07-02 | 前 50 注意力自动抬升、只升不降、无信号churn | ? NEEDS HUMAN | 纯函数与 driver 接线已验证（truth 3、4 的机制面）；运行期行为无测试 |
-| COLL-05 | 07-01/07-02 | 折叠重置、内存态不持久化、替换 COLL-02 | ✓ SATISFIED | 持久化层净删除（truth 6、7、8）；折叠重置机制接线（truth 5 的运行期面转 human） |
+| COLL-03 | 07-01 | +5 增量 / ≤5 一步全展开 / **全展开后按钮消失（无 Show less）** / count=剩余隐藏数 | ✓ SATISFIED | 纯函数表测试 + 按钮接线 + 负门 grep + 人工点击链路验收（amendment 2） |
+| COLL-04 | 07-02 | 前 50（含）running/待交互/当前自动抬升、**unread 不抬**、只升不降、无信号churn | ✓ SATISFIED | 纯函数与 driver 接线 + unread/边界测试 + 人工注意力验收（amendment 1） |
+| COLL-05 | 07-01/07-02 | 折叠重置（基线 = max(5, 注意力需求)）、内存态不持久化、替换 COLL-02 | ✓ SATISFIED | 持久化层净删除 + watermarkBaseline 接线与测试 + 人工折叠验收（amendment 3） |
 
-无孤儿需求（REQUIREMENTS.md 中 Phase 7 三个 ID 均被 plan 认领）。
+无孤儿需求（REQUIREMENTS.md 中 Phase 7 三个 ID 均被 plan 认领，均已勾选）。
 
 ### Anti-Patterns Found
 
@@ -126,15 +123,13 @@ human_verification:
 
 ### Human Verification Required
 
-1. **端到端点击流** — 展开一个 ≥20 条会话的行：初始 5 条、"Show 15 more" → 逐档 +5 → 剩余 ≤5 一步全展开变 "Show less" → 点击一步回基线 5。纯函数层已证明，点击→store→重渲染链路无组件级测试（plan 明确安排）。
-2. **注意力自动抬升** — 让第 6 条之后的会话进入 working/approval/input/unread（或激活远端会话）：无需点击即可见；完成后水位不回落；稳态无持续重渲染。
-3. **折叠重置** — 全展开一行后折叠再展开：回到基线 5 条。
+无——全部人工验收项已由用户在 OpenCode Test desktop 包中完成并通过（见 "人工验收记录"）。
 
 ### Gaps Summary
 
-无 FAILED 项。所有纯函数语义（COLL-03 点击数学、COLL-04 注意力谓词与单调半边、COLL-05 持久化净删除）均有表测试与 grep 负门证据，模块 144 测试全绿、类型门零错误。三条 success criteria 的运行期行为面（自动抬升的实际渲染、只升不降的 effect 行为、折叠重置的状态转换、点击链路端到端）依赖 Solid 响应图的实际执行，无组件级测试覆盖——07-CONTEXT/两份 SUMMARY 均明确将手工 dev 验收安排在 07-02 之后的整体验收。按验证规则这些 truth 记为 PRESENT_BEHAVIOR_UNVERIFIED 并路由人工验收，整体状态 human_needed（非 gaps_found：代码全部在位且接线正确）。
+无 gaps。三条 2026-11-18 用户修正（unread 不抬水位、移除 Show less、折叠基线 = max(5, 注意力需求)）均已以 commit 落地并有对应的纯函数测试与负门 grep 证据；模块测试 146 pass / 0 fail。首次验证遗留的 6 项运行期/端到端人工验收项已由用户在 OpenCode Test desktop 包中全部通过，behavior_unverified 清零。四条 ROADMAP success criteria 全部达成。
 
 ---
 
-_Verified: 2026-11-18T02:45:00Z_
+_Verified: 2026-11-18T12:00:00Z_
 _Verifier: the agent (gsd-verifier)_

@@ -282,8 +282,8 @@ function WorkspaceSidebarBody(props: { conn: ServerConnection.Any }) {
   const unavailable = (key: string) => sessions.availability()[key] === "unavailable"
 
   // One spelling of the COLL-04 requirement read, shared by the render-phase lift below and the
-  // reset paths (Show less, fold), so a reset can target max(BASE, required) instead of a bare
-  // floor the next lift would immediately re-raise for a still-attention session.
+  // fold reset, so a reset can target max(BASE, required) instead of a bare floor the next lift
+  // would immediately re-raise for a still-attention session.
   const rowRequirement = (key: string) => {
     const current = route()
     const ctx = serverCtx()
@@ -361,16 +361,16 @@ function WorkspaceSidebarBody(props: { conn: ServerConnection.Any }) {
     return current.type === "session" && current.server === serverKey && current.sessionId === sessionID
   }
 
-  // COLL-04: render-phase attention raise. Working / approval / input / unread sessions and the
-  // active session lift their row's watermark so they are visible without a click; statuses are
-  // derived from the row's loaded session data (rowSessionStatus), so a session below the current
-  // watermark — which never mounts a SessionRow — raises it too. Folded rows are skipped: folding
-  // reset their watermark and its hidden sessions must not re-lift it while collapsed. The lift
-  // never lowers a watermark here — folding the row and Show less are the only lowers. Every read
-  // stays in the tracked region (status reads included, or a session turning working below the
-  // watermark would never re-run this effect); `untrack` isolates the watermark writes, and a row
-  // writes only when the raised watermark strictly exceeds the stored one, so a steady state
-  // performs zero writes.
+  // COLL-04: render-phase attention raise. Working / approval / input sessions and the active
+  // session lift their row's watermark so they are visible without a click (unread sessions
+  // deliberately do not raise it — 2026-11-18 user decision); statuses are derived from the row's
+  // loaded session data (rowSessionStatus), so a session below the current watermark — which never
+  // mounts a SessionRow — raises it too. Folded rows are skipped: folding resets their watermark
+  // and its hidden sessions must not re-lift it while collapsed. The lift never lowers a watermark
+  // here — folding the row is the only lower (there is no "Show less"). Every read stays in the
+  // tracked region (status reads included, or a session turning working below the watermark would
+  // never re-run this effect); `untrack` isolates the watermark writes, and a row writes only when
+  // the raised watermark strictly exceeds the stored one, so a steady state performs zero writes.
   createEffect(() => {
     const entries = rows()
 

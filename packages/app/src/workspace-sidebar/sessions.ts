@@ -142,9 +142,9 @@ export function requiredWatermark(index: number, status: SessionRowStatus, isAct
 
 /**
  * COLL-03/04: the baseline a reset falls back to — the batch floor, or an attention requirement
- * above it (dsh's baselines = max(BASE, requiredWatermark)). "Show less" and folding drop the
- * stored watermark to this value, never below a session that must stay visible, so the reset is
- * stable instead of being re-lifted by the next driver pass. A quiet row reads as the floor.
+ * above it (dsh's baselines = max(BASE, requiredWatermark)). Folding a row drops the stored
+ * watermark to this value, never below a session that must stay visible, so the reset is stable
+ * instead of being re-lifted by the next driver pass. A quiet row reads as the floor.
  */
 export function watermarkBaseline(required: number) {
   return Math.max(SESSION_WATERMARK_BASE, required)
