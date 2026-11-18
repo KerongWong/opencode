@@ -13,7 +13,7 @@ export const REQUEST_STALL_MS = 2_000
 
 export const REQUEST_STALL_COOLDOWN_MS = 10_000
 
-const slowRequestPaths = ["/api/vcs", "/api/worktree"]
+const slowRequestPaths = ["/api/vcs", "/api/worktree", "/api/location", "/api/file"]
 
 export type RequestQueueConfig = {
   readonly limit: number
