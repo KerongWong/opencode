@@ -8,21 +8,9 @@
 
 侧栏显示什么，完全由我的登记表决定：我登记哪个本地文件夹，就出现哪一行；同一仓库的两份本地拷贝是两行；移除一行只是把它藏起来，目录、git 状态与会话历史分毫不动，重新登记即回来。
 
-## Current Milestone: v2.2 dsh 交互对齐：@ 引用短路径与会话列表水位线
+## Current Milestone: （无 — v2.2 已于 2026-11-18 完成并归档）
 
-**Goal:** 对齐 dsh（`D:\01-project\02-opensource\deepseek-harness`，只读参照）的两项交互——App composer 与已发消息中的 @ 文件引用短路径显示（wire/正文层保持全路径，缩短只发生在渲染层），以及 workspace-sidebar 会话列表从二元持久化展开改为 dsh 式分批水位线（内存态、+5 增量、剩余 ≤5 一步全展开、注意力自动抬升、折叠行重置）。
-
-**Target features:**
-
-- **MENT-01 @ 引用短路径（composer）**：输入框内 file mention chip 显示 basename（同名冲突时最短区分后缀），hover/title 保留全路径；提交序列化仍写全路径进正文与 wire（对齐 dsh `Occurrence`/`serializeReference` 双轨策略）。
-- **MENT-02 @ 引用短路径（已发消息）**：session-ui 渲染 `data-highlight="file"` segment 时显示 basename（重名时最短区分后缀），title/hover 为原始全路径；正文与 wire 不变。
-- **COLL-01 会话列表水位线**：替换二元 `revealed: string[]` 持久化展开为每组内存数字水位：基线 5，点击 +5，剩余 ≤5 一步到全展开并变 "Show less"（一步回基线）；running/待交互/当前/未读完成（index ≤ 50 内）自动抬水位且只升不降；折叠工作区行重置该行水位；不持久化（卸载即重置，对齐 dsh）。
-
-**事实复核修正（2026-11-17，动手前扫描）：** 任务简报原定 A（消息级"撤销+复制"入口）**不成立**——App 端（session-ui `message-content.tsx` 菜单 + App `region.tsx`/`revert.ts` 接线 + e2e 覆盖）已存在完整 Revert/Undo/Copy 入口，故 A 剔除并记入 Out of Scope（理由：能力已存在，重复实现违反最小改动）。
-
-**蓝本（只读参照，不整文件搬移）：** dsh `packages/client/ui-conversation`（`apply.ts` Occurrence 双轨、`draft.ts`）、`packages/client/ui-reference`（`user-text-rules.ts` 的 basename 提取 + `FileReference.tsx` title=raw）、`packages/client/ui-workspace/src/client/rows/WorkspaceBrowser.tsx`（水位语义）与 `path-suffix.ts`（`distinguishingPathSuffixes()`）。只移植纯函数与交互语义，不 fork dsh 基础设施。
-
-**SPEC:** v2.2 无独立设计文档；范围与默认值以 milestone 启动时的任务简报 + 事实复核结论为准。
+**最近完成 — v2.2 dsh 交互对齐：@ 引用短路径与会话列表水位线**（Phases 6-7，审计 passed 5/5，归档 `.planning/milestones/v2.2-*`）
 
 ## Next Milestone Goals
 
