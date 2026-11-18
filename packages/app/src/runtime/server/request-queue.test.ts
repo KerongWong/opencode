@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import { createRequestQueue } from "./request-queue"
-import type { RequestStallSnapshot } from "./request-queue-machine"
+import { classifyRequest } from "./request-queue-machine"
+import type { RequestClassification, RequestStallSnapshot } from "./request-queue-machine"
 
 function setup(input?: {
   limit?: number
@@ -298,4 +299,24 @@ describe("createRequestQueue", () => {
     await new Promise((resolve) => setTimeout(resolve, 20))
     expect(input.logs).toHaveLength(2)
   })
+})
+
+describe("classifyRequest", () => {
+  // First-time location resolution shells out to git and file probes walk the filesystem; both take
+  // seconds and must hold slow slots so user actions keep the ordinary budget.
+  const cases: Array<[method: string, url: string, expected: RequestClassification]> = [
+    ["GET", "http://server/api/location", { bypass: false, slow: true, setup: false, priority: 0 }],
+    ["GET", "http://server/api/location?location[directory]=%2Fa", { bypass: false, slow: true, setup: false, priority: 0 }],
+    ["GET", "http://server/api/file/list", { bypass: false, slow: true, setup: false, priority: 0 }],
+    ["GET", "http://server/api/filex", { bypass: false, slow: false, setup: false, priority: 0 }],
+    ["GET", "http://server/api/session", { bypass: false, slow: false, setup: false, priority: 1 }],
+    ["POST", "http://server/api/worktree", { bypass: false, slow: true, setup: true, priority: 2 }],
+    ["GET", "http://server/api/event", { bypass: true }],
+  ]
+
+  for (const [method, url, expected] of cases) {
+    test(`${method} ${new URL(url).pathname}${new URL(url).search ? " (with query)" : ""}`, () => {
+      expect(classifyRequest(method, new URL(url))).toEqual(expected)
+    })
+  }
 })
