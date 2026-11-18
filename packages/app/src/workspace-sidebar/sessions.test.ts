@@ -347,11 +347,16 @@ describe("watermark", () => {
 
 describe("requiredWatermark", () => {
   test("every attention status inside the ceiling raises the watermark to just past the session", () => {
-    for (const status of ["working", "approval", "input", "unread"] as const) {
+    for (const status of ["working", "approval", "input"] as const) {
       expect(requiredWatermark(0, status, false)).toBe(1)
       expect(requiredWatermark(7, status, false)).toBe(8)
       expect(requiredWatermark(49, status, false)).toBe(50)
     }
+  })
+
+  test("unread sessions do not raise the watermark — the brief lists running/pending/current only", () => {
+    expect(requiredWatermark(0, "unread", false)).toBe(0)
+    expect(requiredWatermark(7, "unread", false)).toBe(0)
   })
 
   test("the ceiling boundary is inclusive: index 50 raises, index 51 does not", () => {

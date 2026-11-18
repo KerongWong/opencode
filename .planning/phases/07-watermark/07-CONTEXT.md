@@ -21,13 +21,13 @@ workspace-sidebar 会话列表从二元持久化展开（v2.1 COLL-02 的 `revea
 - 剩余隐藏数 ≤5 时一步提升到全展开（Infinity 语义）；全展开后按钮变 "Show less"（dsh L629-651）
 - 点击 "Show less" 一步回到基线（不是逐档回退；dsh L635-639）
 - 按钮文案显示**当前水位下的剩余隐藏数**（`Show {{count}} more` 的 count 语义从"相对 5 的总量"变为"剩余量"，现有 i18n key 复用，en.ts L941-943 文案不变）
-- 上限 50 只约束自动提升（dsh `SESSION_WATERMARK_AUTO_MAX`，L77-94）：running / 待交互（approval/input）/ 当前会话 / 未读完成 的会话在列表前 50 条内时自动抬水位使其可见
+- 上限 50 只约束自动提升（dsh `SESSION_WATERMARK_AUTO_MAX`，L77-94）：running / 待交互（approval/input）/ 当前会话 的会话在列表前 50 条内时自动抬水位使其可见（以原始任务简报清单为准；dsh 的"未读完成"条件**不采用**——2026-11-18 用户澄清）
 - 水位只升不降（render 期单调提升，dsh L401-402）；降低只发生在：折叠工作区行（重置该行水位，opencode 无嵌套组，`withinGroup` 退化为单行 key）与点击 "Show less"
 - 不持久化：水位为内存 `createStore`（对齐行展开/折叠 `ui.expanded` 的现有内存态模式，sidebar.tsx L101、L257-268）；卸载即重置。**停止读写 `workspace-sidebar-ui.v1` 的 revealed 展开态**（v2.1 COLL-02 语义被 COLL-05 替换）
 
 ### 注意力信号来源（opencode 侧落地）
 
-- running → v2.1 `session-status.ts` 的 working 状态；待交互 → approval/input 状态；未读完成 → unread 状态；当前会话 → 激活 tab 的 sessionID
+- running 用 v2.1 `session-status.ts` 的 working 状态；待交互用 approval/input 状态；当前会话用激活 tab 的 sessionID（未读 unread 状态**不**抬水位——以原始任务简报清单为准，dsh 的 completed 条件不采用）
 - 与 v2.1 优先级裁决解耦：水位只关心"是否需要可见"，直接复用 `session-status.ts` 输出的状态标记，不新造状态机
 - 自动提升仅在索引 ≤50 内生效（每行 `session.list` 本来就只拉 50 条，天然上限）
 
@@ -46,7 +46,7 @@ workspace-sidebar 会话列表从二元持久化展开（v2.1 COLL-02 的 `revea
 ### the agent's Discretion
 
 - 纯函数的具体命名与拆分（watermark 相关函数签名）
-- 自动提升对 "未读完成" 的实现细节（unread 标记的读取方式以 session-status.ts 现有输出为准）
+- 自动提升对 "未读完成" 的排除细节：unread 状态的读取不再参与水位（2026-11-18 用户澄清，以原始简报清单为准；✓ 未读标记本身保留）
 
 </decisions>
 

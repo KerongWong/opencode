@@ -125,13 +125,15 @@ export function shownByWatermark<T>(sessions: readonly T[], watermark: number) {
 
 /**
  * COLL-04: the watermark an attention session forces when it sits at `index` of its row. Working,
- * approval, input and unread sessions — plus the active session, whatever its status — are visible
- * without a click when they are within the auto-raise ceiling; the ceiling constrains only this
- * automatic lift, never "show more" clicks. Everything else reads as no requirement (0), so a row
- * full of quiet sessions never triggers a write. Index is zero-based, the ceiling is inclusive.
+ * approval and input sessions — plus the active session, whatever its status — are visible without
+ * a click when they are within the auto-raise ceiling; the ceiling constrains only this automatic
+ * lift, never "show more" clicks. Unread sessions deliberately do not raise the watermark: the
+ * original milestone brief lists running/current/pending-interaction only, and the check badge
+ * already marks unread rows. Everything else reads as no requirement (0), so a row of quiet
+ * sessions never triggers a write. Index is zero-based, the ceiling is inclusive.
  */
 export function requiredWatermark(index: number, status: SessionRowStatus, isActive: boolean) {
-  const attention = status === "working" || status === "approval" || status === "input" || status === "unread"
+  const attention = status === "working" || status === "approval" || status === "input"
 
   if (index <= SESSION_WATERMARK_AUTO_MAX && (attention || isActive)) return index + 1
 
