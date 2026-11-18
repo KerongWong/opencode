@@ -35,7 +35,7 @@ Plans:
 **Depends on**: Nothing（与 Phase 6 相互独立；建立在 v2.1 Phase 5 的折叠行实现之上）
 **Requirements**: COLL-03, COLL-04, COLL-05
 **Success Criteria** (what must be TRUE):
-  1. 用户点击会话列表底部 "Show N more" 每次增量显示 5 条；当剩余隐藏数 ≤5 时一步展开全部且按钮变为 "Show less"，点击 "Show less" 一步回到基线水位 5
+  1. 用户点击会话列表底部 "Show N more" 每次增量显示 5 条；当剩余隐藏数 ≤5 时一步展开全部且按钮消失（无 "Show less"）；折叠工作区行再展开后回到基线水位 5
   2. 每组列表前 50 条内的 running / 待交互 / 当前会话无需点击即可见；水位在 render 期单调提升，不因这些会话完成而回落（同次渲染内不降低）
   3. 用户折叠工作区行再展开后，该行的会话列表回到基线水位 5（水位被重置）
   4. 水位为内存态：刷新/重新加载应用后所有行回到基线水位 5，且不再向 `workspace-sidebar-ui.v1` 写入或读取展开持久化状态（替换 v2.1 COLL-02 语义）

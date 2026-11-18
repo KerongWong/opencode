@@ -473,7 +473,6 @@ function WorkspaceSidebarBody(props: { conn: ServerConnection.Any }) {
                           nextWatermark(watermark(key()), sessionsOf(sessions.rows(), key()).sessions.length),
                         )
                       }
-                      onShowLess={() => setRowWatermark(key(), watermarkBaseline(rowRequirement(key())))}
                       onOpen={(session) =>
                         actions.openProjectSession(props.conn, session.location.directory, session, { preview: true })
                       }
@@ -516,7 +515,6 @@ function WorkspaceRow(props: {
   /** COLL-03: how many of this row's sessions are on screen; the baseline reads when unstored. */
   watermark: number
   onShowMore: () => void
-  onShowLess: () => void
   onOpen: (session: SessionInfo) => void
 }) {
   const language = useLanguage()
@@ -642,18 +640,6 @@ function WorkspaceRow(props: {
               onClick={props.onShowMore}
             >
               {language.plural("sidebar.workspace.sessions.more", remainingHidden(props.row.sessions.length, props.watermark))}
-            </button>
-          </Show>
-          <Show
-            when={props.watermark >= props.row.sessions.length && props.row.sessions.length > SESSION_WATERMARK_BASE}
-          >
-            <button
-              type="button"
-              class="flex h-7 w-full shrink-0 items-center rounded-[6px] ps-8 pe-2 text-start text-12-regular text-v2-text-text-muted hover:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none focus-visible:bg-v2-overlay-simple-overlay-hover"
-              aria-expanded={true}
-              onClick={props.onShowLess}
-            >
-              {language.t("sidebar.workspace.sessions.less")}
             </button>
           </Show>
         </div>

@@ -18,8 +18,7 @@ workspace-sidebar 会话列表从二元持久化展开（v2.1 COLL-02 的 `revea
 ### 水位语义（对齐 dsh WorkspaceBrowser.tsx）
 
 - 基线 `SESSION_WATERMARK_BASE = 5`；每次点击 "Show N more" 提升 `+5`（dsh L640-643）
-- 剩余隐藏数 ≤5 时一步提升到全展开（Infinity 语义）；全展开后按钮变 "Show less"（dsh L629-651）
-- 点击 "Show less" 一步回到基线（不是逐档回退；dsh L635-639）
+- 剩余隐藏数 ≤5 时一步提升到全展开；**全部展开后按钮消失，没有 "Show less"**（2026-11-18 用户定案，取代早前"变为 Show less"的写法）：收起只通过折叠工作区行（重置该行水位，展开时回到基线）
 - 按钮文案显示**当前水位下的剩余隐藏数**（`Show {{count}} more` 的 count 语义从"相对 5 的总量"变为"剩余量"，现有 i18n key 复用，en.ts L941-943 文案不变）
 - 上限 50 只约束自动提升（dsh `SESSION_WATERMARK_AUTO_MAX`，L77-94）：running / 待交互（approval/input）/ 当前会话 的会话在列表前 50 条内时自动抬水位使其可见（以原始任务简报清单为准；dsh 的"未读完成"条件**不采用**——2026-11-18 用户澄清）
 - 水位只升不降（render 期单调提升，dsh L401-402）；降低只发生在：折叠工作区行（重置该行水位，opencode 无嵌套组，`withinGroup` 退化为单行 key）与点击 "Show less"
