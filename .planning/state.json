@@ -11,13 +11,13 @@
     {
       "number": "7",
       "name": "会话列表水位线",
-      "status": "pending"
+      "status": "complete"
     }
   ],
   "next": {
-    "command": "/gsd-progress --next",
-    "label": "Advance to the next step (plan phase 7)",
-    "reason": "Phase 2 of 2 — needs a plan"
+    "command": "/gsd-new-milestone",
+    "label": "Start a new milestone",
+    "reason": "All phases complete — start a new milestone"
   },
-  "updated_at": "2026-11-17T17:36:35.629Z"
+  "updated_at": "2026-11-18T02:10:06.489Z"
 }

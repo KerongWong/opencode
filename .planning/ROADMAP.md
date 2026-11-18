@@ -10,7 +10,7 @@
 ## Phases
 
 - [x] **Phase 6: @ 引用短路径（composer 与已发消息）** - file mention 渲染层缩短为 basename，同名最短区分后缀，正文/wire 保持全路径 (completed 2026-11-18)
-- [ ] **Phase 7: 会话列表水位线** - 二元持久化展开替换为 dsh 式内存水位（+5 增量、≤5 一步全展开、注意力自动抬升、折叠重置）
+- [x] **Phase 7: 会话列表水位线** - 二元持久化展开替换为 dsh 式内存水位（+5 增量、≤5 一步全展开、注意力自动抬升、折叠重置） (completed 2026-11-18)
 
 ## Phase Details
 
@@ -39,7 +39,7 @@ Plans:
   2. 每组列表前 50 条内的 running / 待交互 / 当前会话无需点击即可见；水位在 render 期单调提升，不因这些会话完成而回落（同次渲染内不降低）
   3. 用户折叠工作区行再展开后，该行的会话列表回到基线水位 5（水位被重置）
   4. 水位为内存态：刷新/重新加载应用后所有行回到基线水位 5，且不再向 `workspace-sidebar-ui.v1` 写入或读取展开持久化状态（替换 v2.1 COLL-02 语义）
-**Plans**: 2/2 plans executed
+**Plans**: 2/2 plans complete
 **UI hint**: yes
 
 Plans:
@@ -51,4 +51,4 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 6. @ 引用短路径 | 2/2 | Complete    | 2026-11-18 |
-| 7. 会话列表水位线 | 2/2 | In Progress | - |
+| 7. 会话列表水位线 | 2/2 | Complete    | 2026-11-18 |

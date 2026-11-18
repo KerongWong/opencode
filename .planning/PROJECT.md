@@ -45,6 +45,7 @@
 - ✓ Add folder 后自动展开并打开会话（add-open 状态机 + attempt 防陈旧 + 超时静默）— Phase 5
 - ✓ 会话列表折叠（默认 5 条、Show more/less、展开态按 rowKey 持久化到 workspace-sidebar-ui.v1）— Phase 5
 - ✓ @ 引用短路径（MENT-01 composer chip 短名 + hover 全路径、MENT-02 已发消息渲染短名 + title 全路径；wire/正文层全路径不变；复制/粘贴/撤销回读双回路保持）— Phase 6
+- ✓ 会话列表水位线（COLL-03 "Show N more" +5 分批/剩余≤5 一步全展开/无 Show less；COLL-04 running/待交互/当前自动抬升、未读不抬、只升不降；COLL-05 内存水位不持久化、折叠重置到 max(5, 注意力要求)）— Phase 7
 
 ### Active
 
@@ -105,4 +106,4 @@ This document evolves at phase transitions and milestone boundaries.
 3. Audit Out of Scope — reasons still valid?
 4. Update Context with current state
 
-Last updated: 2026-11-18 — Phase 6 完成（@ 引用短路径，人验通过）
+Last updated: 2026-11-18 — v2.2 完成（Phase 6 @ 引用短路径 + Phase 7 会话列表水位线，两阶段均人验通过）
