@@ -107,6 +107,7 @@ None yet.
 
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
+| 181118-qsc | 请求队列慢分类补全：/api/location + /api/file 归类 slow，修复 Add-folder 草稿发送被慢请求堵死（根因见 todos/completed/add-open-draft-hang.md） | 2026-11-18 | a3f18c8d5f | [20261118-queue-slow-class](./quick/20261118-queue-slow-class/) |
 
 ## Deferred Items
 
