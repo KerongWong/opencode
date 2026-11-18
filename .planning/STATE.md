@@ -93,7 +93,7 @@ None yet.
 
 ### Blockers/Concerns
 
-- [Phase 06+07 后续] Add-folder 草稿发送挂起根因已定位（2026-11-18 晚，详见 todos/pending/add-open-draft-hang.md）：客户端全局限流请求队列被新目录首次同步风暴+服务端首次项目解析堵满（renderer 日志 "server thrashing detected" 实证），发送请求在队列中不可见地等待；非 pending 渲染问题、非目录不存在问题。修复待排期
+- [Phase 06+07 后续] Add-folder 草稿发送挂起 + 分支不显示 — **已修复（2026-11-18 晚）**：根因是客户端目录正斜杠拼写 vs 服务端 canonical 反斜杠拼写分叉，`packages/client/src/solid/data.ts` 的 `locationResource` 中 `agent`/`vcs` 缺 `alias: true`（model/provider 有）。修复 + 回归测试在工作区未提交；完整证据链见 `.planning/debug/add-local-folder-draft-hang.md`，结论见 `todos/completed/add-open-draft-hang.md`。此前"请求队列饱和"根因判断有误（a3f18c8d5f 是真实修复但非本 bug 根因）
 - [Phase 06] 新 profile 默认模型 hy4-flash-free 服务端返回 426（需 OpenCode 1.18.0+）；验证时切到自定义 provider（如 kimi）
 - [全局] 客户端没有 `fs`：归一只做分隔符 / 尾斜杠 / Windows 大小写，符号链接别名会登记成两个工作区（已承认的残余，不假装解决）。
 - [全局] 不得派发 `location.get`（会创建 project 行）；登记流程只用 `session.list`。

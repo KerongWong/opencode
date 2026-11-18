@@ -1,8 +1,8 @@
 # 问题记录：add-open 挂起（hang）排查与复现
 
-> 状态：**根因之一已定位**（"文件选择器异常"实为复现脚本自身行为）；add-open hang 本体待修复
+> 状态：**已修复（2026-11-18 晚）** — add-open hang 根因 = 目录拼写分叉（客户端正斜杠 vs 服务端 canonical 反斜杠）+ SDK `locationResource` 的 `agent`/`vcs` 缺 `alias: true`；发送挂死与分支不显示同根。证据链：`.planning/debug/add-local-folder-draft-hang.md`；结论：`todos/completed/add-open-draft-hang.md`
 > 记录时间：2026-11-18 下午（事发同日）
-> 最后更新：2026-11-18（commit 前）
+> 最后更新：2026-11-18（修复后）
 
 ## 当前主线问题
 
