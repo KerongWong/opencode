@@ -14,7 +14,7 @@ covered_files:
   - "packages/app/src/workspace-sidebar/sidebar.tsx"
   - "packages/app/src/workspace-sidebar/store.test.ts"
   - "packages/app/src/workspace-sidebar/store.ts"
-covered_digest: "v4:sha256:e9afdeea97dd6db902cd14b4a45be8627523a5329d9b09aab58f603686ad9682"
+covered_digest: "v4:sha256:7e602b946fcc93184a415d8c7783d4188ec1ee8635f6d320a1dd9f2ab21e0b1c"
 behavior_unverified: 0
 overrides_applied: 0
 re_verification:
