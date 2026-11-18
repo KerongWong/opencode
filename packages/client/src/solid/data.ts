@@ -1491,9 +1491,6 @@ export function createData(config: CreateDataInput) {
     if (active) refresh(() => resource.sync(location))
   }
 
-  // A cached per-location catalog. `sync` loads once per invalidation, keyed by the
-  // effective location, and publishes under the server's canonical location; `alias`
-  // also publishes under the requested key when the two differ.
   // Reloads usage limits only where something has read them, since each load asks OpenCode Console.
   function refreshUsageLimits(location: LocationRef) {
     const loaded =
@@ -1503,12 +1500,24 @@ export function createData(config: CreateDataInput) {
     if (loaded) refresh(() => usageLimits.sync(location))
   }
 
+  // A cached per-location catalog. `sync` loads once per invalidation, keyed by the
+  // effective location, and publishes under the server's canonical location; `alias`
+  // also publishes under the requested key when the two differ. Aliased resources keep a
+  // canonical → requested-key registry so a later sync under any spelling (e.g. an event's
+  // canonical location) refreshes every spelling a reader may hold, not just the one that ran.
+  const aliases = new Map<string, Set<string>>()
+
   function locationResource<Field extends keyof LocationData>(
     field: Field,
     load: (location: ReturnType<typeof locationQuery>) => Promise<{ location: LocationRef; data: LocationData[Field] }>,
     options?: { alias?: boolean },
   ) {
     const publish = (key: string, value: LocationData[Field]) => setStore("location", key, { [field]: value })
+    const publishAliases = (canonical: string, value: LocationData[Field]) => {
+      publish(canonical, value)
+      if (!options?.alias) return
+      aliases.get(canonical)?.forEach((target) => publish(target, value))
+    }
     return {
       list: (ref?: LocationRef) => store.location[locationKey(ref ?? defaultLocation())]?.[field],
       sync: (ref?: LocationRef) => {
@@ -1517,15 +1526,19 @@ export function createData(config: CreateDataInput) {
         return sync.run(`location.${field}:${id}`, async () => {
           const response = await load(locationQuery(location))
           const key = locationKey(response.location)
-          publish(key, response.data)
-          if (options?.alias && key !== id) publish(id, response.data)
+          if (options?.alias && key !== id) {
+            const targets = aliases.get(key) ?? new Set<string>()
+            targets.add(id)
+            aliases.set(key, targets)
+          }
+          publishAliases(key, response.data)
         })
       },
       invalidate: (ref?: LocationRef) => sync.invalidate(`location.${field}:${locationKey(ref ?? defaultLocation())}`),
     }
   }
 
-  const vcs = locationResource("vcs", (location) => api().vcs.get({ location }))
+  const vcs = locationResource("vcs", (location) => api().vcs.get({ location }), { alias: true })
   const usageLimits = locationResource("usageLimits", (location) => api().experimental.usage.limits({ location }))
   const shells = locationResource("shell", async (location) => {
     const response = await api().shell.list({ location })
@@ -2175,7 +2188,7 @@ export function createData(config: CreateDataInput) {
       },
       vcs: { info: vcs.list, sync: vcs.sync, invalidate: vcs.invalidate },
       usage: { limits: usageLimits.list, sync: usageLimits.sync, invalidate: usageLimits.invalidate },
-      agent: locationResource("agent", (location) => api().agent.list({ location })),
+      agent: locationResource("agent", (location) => api().agent.list({ location }), { alias: true }),
       command: locationResource("command", (location) => api().command.list({ location })),
       config: locationResource("config", async (location) => ({
         location: { directory: location.directory },

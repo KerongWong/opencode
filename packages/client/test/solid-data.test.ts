@@ -1334,6 +1334,62 @@ test("reloads VCS info when the branch changes", async () => {
   }
 })
 
+test("answers agent and VCS reads from the requested spelling when the server canonicalizes the directory", async () => {
+  // A client can only send the directory spelling it has (a normalized workspace registry path); the server
+  // answers with its own canonical spelling. A draft in that workspace reads both catalogs through the
+  // requested spelling, so a sync must publish under both keys or the composer's loading gate never clears.
+  const requested = { directory: "/requested-spelling" }
+  const canonical = {
+    directory: "/canonical-spelling",
+    project: { id: "project", directory: "/canonical-spelling", canonical: "/canonical-spelling" },
+  }
+  let vcsResponses = [{ branch: {} }, { provider: "git", branch: { current: "main", default: "main" } }]
+  const api = OpenCode.make({
+    baseUrl: "http://opencode.local",
+    fetch: async (input, init) => {
+      const pathname = new URL((input instanceof Request ? input : new Request(input, init)).url).pathname
+      if (pathname === "/api/agent")
+        return Response.json({
+          location: canonical,
+          data: [
+            {
+              id: "agent",
+              name: "Agent",
+              mode: "primary",
+              hidden: false,
+              request: { headers: {}, body: {} },
+              permissions: [],
+            },
+          ],
+        })
+      if (pathname === "/api/vcs") return Response.json({ location: canonical, data: vcsResponses.shift() })
+      throw new Error(`Unexpected request: ${pathname}`)
+    },
+  })
+  const setup = createRoot((dispose) => ({
+    data: createData({
+      api: () => api,
+      directory: "/project",
+      event: { on: () => () => {}, listen: () => () => {} },
+    }),
+    dispose,
+  }))
+
+  try {
+    await setup.data.location.agent.sync(requested)
+    await setup.data.location.vcs.sync(requested)
+    expect(setup.data.location.agent.list(requested)?.[0]?.id).toBe("agent")
+    expect(setup.data.location.vcs.info(requested)).toEqual({ branch: {} })
+
+    // A later sync under the canonical spelling (e.g. from an event's location) must refresh the
+    // requested spelling too, or the first response's stale data is read forever.
+    await setup.data.location.vcs.sync(canonical)
+    expect(setup.data.location.vcs.info(requested)).toEqual({ provider: "git", branch: { current: "main", default: "main" } })
+  } finally {
+    setup.dispose()
+  }
+})
+
 test("preserves sibling catalogs through location preload, branch, shell, and websearch updates", async () => {
   const listeners = new Set<Parameters<CreateDataInput["event"]["listen"]>[0]>()
   const location = { directory: "/project", project: { id: "project", directory: "/project", canonical: "/project" } }
