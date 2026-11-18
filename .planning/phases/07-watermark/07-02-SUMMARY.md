@@ -181,3 +181,15 @@ None.
 ---
 *Phase: 07-watermark*
 *Completed: 2026-11-17*
+
+---
+
+## Post-delivery amendments (2026-11-18, user-directed)
+
+Three semantic corrections landed after this plan's execution, per the user's clarifications (the original milestone brief is authoritative over dsh source details):
+
+1. **Unread sessions do not raise the watermark** — auto-raise covers working / approval / input / active only (commit `adb828a864`).
+2. **No "Show less" button** — the reveal button disappears at full expansion; collapse is folder-fold only (commit `6f8627c257`).
+3. **Fold reset targets max(5, attention requirement)** — a reset is stable against the monotonic re-lift (commit `ff1b92d019`).
+
+Final verification: 4/4 success criteria, 146 module tests green, user-validated in the OpenCode Test desktop package (see 07-VERIFICATION.md).

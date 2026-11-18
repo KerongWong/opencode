@@ -102,3 +102,15 @@ Note facet 1 partially mirrors dsh (dsh's render-phase raise would also re-lift 
 _Reviewed: 2026-11-18_
 _Reviewer: the agent (gsd-code-reviewer)_
 _Depth: standard_
+
+---
+
+## Post-clean changes (2026-11-18, user-directed)
+
+After the clean re-review, three semantic corrections landed directly (commits `ff1b92d019`, `adb828a864`, `6f8627c257`):
+
+1. Fold/reset baseline = `max(5, attention requirement)` (`watermarkBaseline`), replacing the bare-5 reset that the monotonic driver would immediately re-lift.
+2. Unread sessions removed from the auto-raise set (`requiredWatermark` attention = working/approval/input + active only).
+3. The "Show less" button was removed entirely — reveal button only, collapse via folder fold.
+
+All module tests re-run green (146 pass / 0 fail) and the final verifier pass scored 4/4 with these commits as HEAD ancestors (see 07-VERIFICATION.md, Amendments section).

@@ -80,6 +80,7 @@ Recent decisions affecting current work:
 - [Roadmap]: 事实复核（2026-11-17）确认任务简报 A 项（消息级撤销+复制入口）已存在于 App 端，剔除出范围并记入 Out of Scope
 - [Phase 06]: mentionLabels 纯函数落 session-ui（./mention-label 导出）；basename 分组移植 dsh 段窗口语义；PromptAttachment 无 path 字段，labels 作用域由 file.mention.text.slice(1) 派生
 - [Phase 06]: [Phase 06]: composer chip 渲染缩短以 original.content 为 parse 真源（渲染缩短下 textContent 不可信）；file 身份匹配迁移到 dataset，label 比较只保留非 file 类型
+- [Phase 07]: 会话水位三条最终语义以用户 2026-11-18 澄清为准（原始任务简报优先于 dsh 源码细节）：① 未读会话不抬水位（自动抬升 = working/approval/input/当前）；② 无 "Show less" 按钮（全展开后按钮消失，收起只通过折叠文件夹行）；③ 折叠重置基线 = max(5, 注意力要求)，稳定对抗单调回抬
 - [Phase 07]: 水位 store 用 Record<string, number | undefined>（setRowWorking 惯例），undefined 删 key；Show less 与折叠重置共用删 key = 回基线路径
 - [Phase 07]: RED 证据：stub 导出 + bun:test 输出转 TAP 过 tdd-red-evidence（RED_EVIDENCE_OK）；workflow.tdd_mode=false 按项目 RED-commit 惯例执行
 - [Phase 07]: COLL-04: status signal lifted via onStatusChange callback reusing the row status memo (mirrors onWorkingChange); driver never re-derives flags, no new state machine
