@@ -1,20 +1,20 @@
 ---
 gsd_state_version: "1.0"
 milestone: v2.2
-milestone_name: dsh 交互对齐：@ 引用短路径与会话列表水位线
 current_phase: 07
 status: completed
 stopped_at: Phase 07 complete — all phases complete
-last_updated: "2026-11-18T02:10:06.409Z"
+last_updated: "2026-11-18T02:26:32.957Z"
 last_activity: 2026-11-18
 last_activity_desc: Phase 07 complete
-state_head: 7b5322ae13facf611a44442d172f0e9358b486c7
+state_head: 1623a99aacaa01d1010425b9103d09eb7482163f
 progress:
   total_phases: 2
   completed_phases: 2
   total_plans: 4
   completed_plans: 4
   percent: 100
+milestone_name: dsh 交互对齐：@ 引用短路径与会话列表水位线
 ---
 
 # Project State
@@ -107,7 +107,6 @@ None yet.
 
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
-| 261114-lht | 将 workspace-sidebar 提升为 Interface layout 第四模式（projects 布局，渠道默认启用），渠道 fork→projects | 2026-11-14 | e5513f38c2 | [261114-lht-workspace-sidebar-interface-layout-proje](./quick/261114-lht-workspace-sidebar-interface-layout-proje/) |
 
 ## Deferred Items
 
