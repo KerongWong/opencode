@@ -1,6 +1,14 @@
 import { expect, test } from "bun:test"
 import type { ComposerPrompt } from "../types"
-import { composerClipboardText, editorMatchesPrompt, getCursorPosition, isEditorDomBlank, isPromptInlineBlank, setCursorPosition } from "./dom"
+import {
+  composerClipboardText,
+  editorMatchesPrompt,
+  getCursorPosition,
+  isEditorDomBlank,
+  isPromptInlineBlank,
+  mentionParts,
+  setCursorPosition,
+} from "./dom"
 
 const br = () => document.createElement("br")
 
@@ -71,6 +79,24 @@ test("reads a caret on or inside a mention as before or after it", () => {
   expect(getCursorPosition(container)).toBe(7)
   selection.collapse(container.childNodes[2]!, 0)
   expect(getCursorPosition(container)).toBe(7)
+
+  container.remove()
+})
+
+test("reads a caret after a shortened file pill as the end of its full @path", () => {
+  const container = document.createElement("div")
+  const mention = pill()
+  const path = "test-case/2026-11-18-feature/detail.md"
+  mention.textContent = "@detail.md"
+  mention.dataset.path = path
+  mentionParts.set(mention, { type: "file", path, content: `@${path}`, start: 0, end: 0 })
+  container.append(mention, text(" hi"))
+  document.body.appendChild(container)
+
+  // The pill's label is shorter than the mention it stands for, so a caret after it is the prompt's full @path end.
+  expect(mention.textContent).toBe("@detail.md")
+  setCursorPosition(container, path.length + 1)
+  expect(getCursorPosition(container)).toBe(path.length + 1)
 
   container.remove()
 })

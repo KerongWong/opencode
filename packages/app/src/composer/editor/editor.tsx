@@ -50,7 +50,14 @@ import type {
 } from "../types"
 import type { ComposerEditorModel, ComposerSelectControl } from "./interaction"
 import { isAttachment, promptLength } from "../prompt-parts"
-import { composerClipboardText, editorMatchesPrompt, getCursorPosition, isEditorDomBlank, isPromptInlineBlank } from "./dom"
+import {
+  composerClipboardText,
+  editorMatchesPrompt,
+  getCursorPosition,
+  isEditorDomBlank,
+  isPromptInlineBlank,
+  mentionParts,
+} from "./dom"
 import {
   INITIAL_EDITOR_SYNC_STATE,
   INPUT_PARSED,
@@ -580,8 +587,6 @@ export function ComposerEditor(props: ComposerEditorProps) {
     </div>
   )
 }
-
-const mentionParts = new WeakMap<HTMLElement, Exclude<ComposerPrompt[number], ComposerAttachment | { type: "text" }>>()
 
 function renderComposerEditor(editor: HTMLDivElement, prompt: ComposerPrompt) {
   const active = document.activeElement === editor

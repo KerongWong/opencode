@@ -1,6 +1,14 @@
 import { isAttachment } from "../prompt-parts"
 import type { ComposerPrompt } from "../types"
 
+type ComposerMentionPart = Extract<ComposerPrompt[number], { type: "file" | "agent" | "skill" | "session" }>
+
+/**
+ * The part each rendered pill stands for. A file pill shows a shortened label while its part keeps the full
+ * `@path`, so every prompt offset reads the part instead of the pill's DOM text.
+ */
+export const mentionParts = new WeakMap<HTMLElement, ComposerMentionPart>()
+
 // Where `editorMatchesPrompt` is in the prompt: the part and the characters of it already matched. Module state so
 // the per-keystroke walk allocates nothing; the walk is synchronous, so calls never interleave.
 let matchPart = 0
@@ -180,7 +188,22 @@ function nextPart(prompt: ComposerPrompt) {
 function getNodeLength(node: Node): number {
   if (node instanceof Element && node.tagName === "BR") return 1
 
+  if (node instanceof HTMLElement && node.dataset.mention) return mentionLength(node)
+
   return textLength(node)
+}
+
+// A pill's length in the prompt, counted the way `parseComposerEditor` reads it back: a file pill keeps its full
+// `@path` while the DOM shows the shortened label.
+function mentionLength(element: HTMLElement) {
+  const part = mentionParts.get(element)
+
+  if (part?.type === "file") return part.content.length
+
+  // A pill native undo reinserted has no stored part; its dataset keeps the full path.
+  if (!part && element.dataset.path) return element.dataset.path.length + 1
+
+  return textLength(element)
 }
 
 // The node's text without zero-width spaces, like `textContent` but without building the string.

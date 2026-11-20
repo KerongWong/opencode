@@ -121,6 +121,33 @@ test("a bare @ lists sessions, and a multi-word title matches while file search 
   expect(prompts[1]?.text).toBe("@home now")
 })
 
+test("prose after a file mention in a folder does not reopen the @ menu", async ({ page }) => {
+  const path = "test-case/2026-11-18-feature-P184/detail.md"
+  const prompts: Parameters<NonNullable<MockServerConfig["onPrompt"]>>[0]["body"][] = []
+
+  const view = await openSession(page, {
+    name: "FileMentionProse",
+    findFiles: ({ query }) => (query ? [path] : []),
+    onPrompt: (input) => void prompts.push(input.body),
+  })
+
+  const suggestions = page.locator('[data-component="composer-suggestions"]')
+
+  await view.editor.pressSequentially("@detail")
+  await suggestions.getByRole("button", { name: /detail\.md/ }).click()
+  // The pill shows the basename while the mention keeps the full path it stands for.
+  await expect(view.editor.locator('[data-mention="file"]')).toHaveText("@detail.md")
+
+  await view.editor.pressSequentially("h")
+  await expect(suggestions).toBeHidden()
+  await view.editor.pressSequentially("ello")
+  await expect(suggestions).toBeHidden()
+
+  await view.editor.press("Enter")
+  await expect.poll(() => prompts.length).toBe(1)
+  expect(prompts[0]?.text).toBe(`@${path} hello`)
+})
+
 test("closing the @ menu aborts its session search", async ({ page }) => {
   const view = await openSession(page, {
     name: "SessionMentionAbort",
