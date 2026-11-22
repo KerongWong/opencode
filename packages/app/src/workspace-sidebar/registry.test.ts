@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, setSystemTime, test } from "bun:test"
 import { Schema } from "effect"
+import { Persistence } from "@/runtime/persistence/schema"
 import { ServerScope } from "@/runtime/server/scope"
 import {
   defaultTitle,
@@ -227,9 +228,13 @@ describe("visible", () => {
 })
 
 describe("workspace registry document", () => {
-  const registry: WorkspaceRegistry = { entries: [app, removedApp], scrollTop: 12 }
+  const registry: WorkspaceRegistry = {
+    entries: [app, removedApp],
+    scrollTop: 12,
+    expanded: { "d:/code/app": true },
+  }
 
-  test("keeps entries and scroll position through a round trip", () => {
+  test("keeps entries, scroll position and expanded rows through a round trip", () => {
     const encoded = Schema.encodeSync(WorkspaceRegistrySchema)(registry)
 
     expect(encoded).toEqual({
@@ -238,13 +243,41 @@ describe("workspace registry document", () => {
         { directory: "D:/code/app", title: "My app", order: 3, createdAt: 500, removedAt: 900 },
       ],
       scrollTop: 12,
+      expanded: { "d:/code/app": true },
     })
     expect(encoded.entries?.[0]).not.toHaveProperty("removedAt")
     expect(Schema.decodeUnknownSync(WorkspaceRegistrySchema)(encoded)).toEqual(registry)
   })
 
   test("starts empty", () => {
-    expect(initialRegistry).toEqual({ entries: [], scrollTop: 0 })
+    expect(initialRegistry).toEqual({ entries: [], scrollTop: 0, expanded: {} })
+  })
+
+  test("keeps an older document's rows and restores an empty fold map", () => {
+    const decode = Schema.decodeUnknownSync(Persistence.withInitial(WorkspaceRegistrySchema, initialRegistry))
+
+    const older = decode({
+      entries: [{ directory: "D:/code/app", title: "My app", order: 3, createdAt: 500 }],
+      scrollTop: 12,
+    })
+
+    expect(older.entries).toEqual([app])
+    expect(older.scrollTop).toBe(12)
+    expect(older.expanded).toEqual({})
+  })
+
+  test("drops only a corrupt fold entry and keeps its valid siblings", () => {
+    const decode = Schema.decodeUnknownSync(Persistence.withInitial(WorkspaceRegistrySchema, initialRegistry))
+
+    const document = decode({
+      entries: [app],
+      scrollTop: 12,
+      expanded: { "d:/code/app": true, bad: "true" },
+    })
+
+    expect(document.entries).toEqual([app])
+    expect(document.scrollTop).toBe(12)
+    expect(document.expanded).toEqual({ "d:/code/app": true })
   })
 
   test("uses the registry key as the persisted key", () => {

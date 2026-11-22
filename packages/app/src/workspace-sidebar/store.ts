@@ -1,3 +1,4 @@
+import { produce } from "solid-js/store"
 import { persisted } from "@/runtime/persistence/storage"
 import type { ServerScope } from "@/runtime/server/scope"
 import {
@@ -93,6 +94,19 @@ export function createWorkspaceRegistry(scope: ServerScope, platform: HostPlatfo
     setState("entries", entries)
   }
 
+  // Folded is the absence of a key, so a collapse also prunes a row the user removed.
+  const setExpanded = (key: string, value: boolean) => {
+    if (state.expanded[key] === value) return
+
+    setState(
+      "expanded",
+      produce((map: Record<string, boolean>) => {
+        if (value) map[key] = true
+        else delete map[key]
+      }),
+    )
+  }
+
   return {
     entries: () => state.entries,
     scrollTop: () => state.scrollTop,
@@ -109,6 +123,7 @@ export function createWorkspaceRegistry(scope: ServerScope, platform: HostPlatfo
     },
     remove(directory: string) {
       commit(remove(state.entries, { directory, platform }))
+      setExpanded(directoryKey(directory, platform), false)
     },
     reorder(orderedDirectories: string[]) {
       commit(applyOrder(state.entries, orderedDirectories, platform))
@@ -116,6 +131,11 @@ export function createWorkspaceRegistry(scope: ServerScope, platform: HostPlatfo
     setScrollTop(value: number) {
       setState("scrollTop", value)
     },
+    /** Whether the row is folded open; a row the user never touched reads as folded. */
+    expanded(key: string) {
+      return state.expanded[key] === true
+    },
+    setExpanded,
     adoptDirectory(directory: string, serverDirectory: string) {
       commit(adoptEntryDirectory(state.entries, directory, serverDirectory, platform))
     },

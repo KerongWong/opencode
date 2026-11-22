@@ -224,6 +224,54 @@ test("desktop Projects resumes the remembered tab when the window opens at Home"
   await expect(projects.getByRole("group", { name: "Hidden server", exact: true })).toHaveCount(0)
 })
 
+test("desktop Projects remembers each workspace row's fold state across reloads", async ({ page }) => {
+  const alpha = { id: "ses_fold_alpha", title: "Alpha session" }
+
+  await mockWorkspace(page, {
+    name: "Alpha",
+    sessions: [alpha],
+    fileList: () => [],
+    seed: {
+      settings: { appearance: { tabLayout: "projects" } },
+      storage: {
+        "opencode.global.dat:workspace-registry.v1": {
+          entries: [
+            { directory: "C:/OpenCode/Alpha", title: "Alpha", order: 0, createdAt: 0 },
+            { directory: "C:/OpenCode/Beta", title: "Beta", order: 1, createdAt: 0 },
+          ],
+          scrollTop: 0,
+        },
+      },
+    },
+  })
+
+  await page.goto("/")
+
+  const sidebar = page.locator('[data-slot="workspace-sidebar"]')
+
+  const alphaRow = sidebar.getByRole("button", { name: "Alpha", exact: true })
+
+  const betaRow = sidebar.getByRole("button", { name: "Beta", exact: true })
+
+  await expect(alphaRow).toHaveAttribute("aria-expanded", "false")
+  await expect(betaRow).toHaveAttribute("aria-expanded", "false")
+
+  await alphaRow.click()
+  await expect(alphaRow).toHaveAttribute("aria-expanded", "true")
+  await expect(sidebar.getByText(alpha.title, { exact: true })).toBeVisible()
+
+  // A reload is the contract: only state written to storage survives a fresh mount.
+  await page.reload()
+  await expect(alphaRow).toHaveAttribute("aria-expanded", "true")
+  await expect(betaRow).toHaveAttribute("aria-expanded", "false")
+
+  await alphaRow.click()
+  await expect(alphaRow).toHaveAttribute("aria-expanded", "false")
+
+  await page.reload()
+  await expect(alphaRow).toHaveAttribute("aria-expanded", "false")
+})
+
 test("a working Home session keeps its project avatar and shows its activity ring at the end of the row", async ({
   page,
 }) => {

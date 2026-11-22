@@ -113,8 +113,6 @@ function WorkspaceSidebarBody(props: { conn: ServerConnection.Any }) {
     onServerSpelling: (directory, spelling) => registry.adoptDirectory(directory, spelling),
   })
 
-  const [ui, setUi] = createStore<{ expanded: Record<string, boolean> }>({ expanded: {} })
-
   // COLL-05: session watermarks live in component memory only — folding the row or unmounting
   // resets them; nothing here reads or writes a persisted layer.
   const [watermarks, setWatermarks] = createStore<Record<string, number | undefined>>({})
@@ -277,7 +275,7 @@ function WorkspaceSidebarBody(props: { conn: ServerConnection.Any }) {
   // `on` tracks the row list only: `load` reads and writes the session store, so a bare effect would retrigger itself.
   createEffect(on(rows, () => sessions.load()))
 
-  const expanded = (key: string) => ui.expanded[key] === true
+  const expanded = (key: string) => registry.expanded(key)
 
   const unavailable = (key: string) => sessions.availability()[key] === "unavailable"
 
@@ -306,7 +304,7 @@ function WorkspaceSidebarBody(props: { conn: ServerConnection.Any }) {
   const toggle = (key: string) => {
     const next = !expanded(key)
 
-    setUi("expanded", key, next)
+    registry.setExpanded(key, next)
 
     // COLL-05: folding a row resets its session watermark back to the baseline. The baseline is
     // the batch floor or an attention requirement above it — never a bare floor the next driver
@@ -342,7 +340,7 @@ function WorkspaceSidebarBody(props: { conn: ServerConnection.Any }) {
         // NAV-01: expand the new row and let the machine open its most recent session (or a new
         // draft once the row reads ready).
         addOpenDirectory = entry.directory
-        setUi("expanded", directoryKey(entry.directory, host), true)
+        registry.setExpanded(directoryKey(entry.directory, host), true)
         dispatchAddOpen({ type: "registered", key: directoryKey(entry.directory, host) })
 
         void sessions.probeSpelling(entry).then((spelling) => {
@@ -532,6 +530,8 @@ function WorkspaceRow(props: {
     },
   })
 
+  const open = () => props.expanded && !props.unavailable
+
   return (
     <div ref={sortable.ref} class="relative shrink-0">
       <div
@@ -549,7 +549,7 @@ function WorkspaceRow(props: {
         <button
           type="button"
           class="flex h-full min-w-0 flex-1 cursor-default items-center gap-2 rounded-[6px] bg-transparent px-2 text-start text-[13px] leading-[var(--line-height-compact)] text-v2-text-text-muted [font-weight:440] transition-colors duration-[120ms] ease-in-out group-hover/workspace:text-v2-text-text-base focus-visible:text-v2-text-text-base focus-visible:outline-none"
-          aria-expanded={props.expanded}
+          aria-expanded={open()}
           aria-disabled={props.unavailable}
           onClick={() => {
             if (!props.unavailable) props.onToggle()
@@ -571,7 +571,7 @@ function WorkspaceRow(props: {
             name="fill-triangle-down"
             size="small"
             class="shrink-0 text-v2-icon-icon-muted transition-transform"
-            classList={{ "-rotate-90 rtl:rotate-90": !props.expanded }}
+            classList={{ "-rotate-90 rtl:rotate-90": !open() }}
           />
         </button>
         <span
@@ -603,7 +603,7 @@ function WorkspaceRow(props: {
           </Menu>
         </span>
       </div>
-      <Show when={props.expanded && !props.unavailable}>
+      <Show when={open()}>
         <div data-workspace-action class="flex flex-col gap-[3px] pb-1">
           <Show when={props.row.status === "loading"}>
             <div class="ps-8 pe-2 py-1.5">

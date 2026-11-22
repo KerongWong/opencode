@@ -1,4 +1,4 @@
-import { Schema } from "effect"
+import { Effect, Option, Schema } from "effect"
 import type { Platform } from "@/runtime/platform/platform"
 import { Persistence } from "@/runtime/persistence/schema"
 import { Persist } from "@/runtime/persistence/storage"
@@ -21,11 +21,13 @@ export type WorkspaceEntry = typeof WorkspaceEntrySchema.Type
 export const WorkspaceRegistrySchema = Persistence.struct({
   entries: Persistence.array(WorkspaceEntrySchema),
   scrollTop: Schema.Number,
+  /** Row fold state by `directoryKey`; absent or false reads as folded. */
+  expanded: Persistence.record(Schema.Boolean.pipe(Schema.catchDecoding(() => Effect.succeed(Option.none())))),
 })
 
 export type WorkspaceRegistry = typeof WorkspaceRegistrySchema.Type
 
-export const initialRegistry: WorkspaceRegistry = { entries: [], scrollTop: 0 }
+export const initialRegistry: WorkspaceRegistry = { entries: [], scrollTop: 0, expanded: {} }
 
 /**
  * The persisted target only. Phase 2 calls `persisted(registryTarget(scope), ...)` from its own
