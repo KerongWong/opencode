@@ -1,43 +1,44 @@
 ---
 gsd_state_version: "1.0"
-milestone: v2.2
-current_phase: 07
+milestone: v2.3
+milestone_name: 侧栏折叠状态持久化
+current_phase: 8
 status: completed
-stopped_at: Phase 07 complete — all phases complete
-last_updated: "2026-11-18T02:26:32.957Z"
-last_activity: 2026-11-18
-last_activity_desc: Phase 07 complete
-state_head: 1623a99aacaa01d1010425b9103d09eb7482163f
+stopped_at: Phase 8 complete — all phases complete
+last_updated: "2026-11-22T04:41:36.109Z"
+last_activity: 2026-11-22
+last_activity_desc: Phase 8 complete
+state_head: 29af99f59c1f245af1b2ab3e04f60496a69b3b86
 progress:
-  total_phases: 2
-  completed_phases: 2
-  total_plans: 4
-  completed_plans: 4
+  total_phases: 1
+  completed_phases: 1
+  total_plans: 1
+  completed_plans: 1
   percent: 100
-milestone_name: dsh 交互对齐：@ 引用短路径与会话列表水位线
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-11-17, v2.2 启动)
+See: .planning/PROJECT.md (updated 2026-11-22, v2.3 启动)
 
 **Core value:** 侧栏显示什么完全由我的登记表决定：登记哪个本地文件夹就出现哪一行；同一仓库两份拷贝是两行；移除只是藏起来，目录、git 与会话分毫不动，重新登记即回来。
-**Current focus:** Phase 07 — 会话列表水位线
-**SPEC:** v2.2 无独立设计文档；范围与默认值以 milestone 启动时的任务简报 + 事实复核结论为准（dsh 只读参照）。
+**Current focus:** Phase 08 — 工作区行折叠状态持久化
+**SPEC:** v2.3 无独立设计文档；范围以用户 2026-11-22 需求 + 事实复核（`sidebar.tsx` 的 `ui.expanded` 为内存态、`workspace-registry.v1` 已持久化 `scrollTop`）为准。
 
 ## Current Position
 
-Phase: 07
+Phase: 8
 Plan: Not started
 Status: All phases complete
-Last activity: 2026-11-18 — Phase 07 complete
+Last activity: 2026-11-22 — Phase 8 complete
+
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 9 (v2.0: 5, v2.1: 2)
+- Total plans completed: 10 (v2.0: 5, v2.1: 2)
 - Average duration: 13min
 - Total execution time: 0.2 hours
 
@@ -52,6 +53,7 @@ Last activity: 2026-11-18 — Phase 07 complete
 | 05 | 1 | - | - |
 | 06 | 2 | - | - |
 | 07 | 2 | - | - |
+| 8 | 1 | - | - |
 
 **Recent Trend:**
 - Last 5 plans: -
@@ -66,6 +68,7 @@ Last activity: 2026-11-18 — Phase 07 complete
 | Phase 06 P02 | 15min | 2 tasks | 3 files |
 | Phase 07 P01 | 8min | 2 tasks | 3 files |
 | Phase 07 P02 | 20 min | 2 tasks | 5 files |
+| Phase 08 P01 | 25min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -86,6 +89,9 @@ Recent decisions affecting current work:
 - [Phase 07]: COLL-04: status signal lifted via onStatusChange callback reusing the row status memo (mirrors onWorkingChange); driver never re-derives flags, no new state machine
 - [Phase 07]: COLL-05: revealed persistence layer removed net (ui-state.ts/test deleted, createWorkspaceUiState gone, workspace-sidebar-ui.v1 zero reads/writes); workspace-registry.v1 untouched
 - [Phase 07]: COLL-04 render driver: untrack-isolated reads/writes on the same store, writes only when raised watermark strictly exceeds stored (zero writes at steady state, no signal churn)
+- [Phase 08]: 行折叠态并入 `workspace-registry.v1`（`expanded: Record<rowKey, boolean>`）而不是新开 `workspace-sidebar-ui.v2`：与 `scrollTop` 同类视图状态、同一次水合，避免首帧「先折叠后展开」闪烁；`workspace-sidebar-ui.v1` 继续零读零写
+- [Phase 08]: 只持久化行折叠态；会话水位仍为内存态并按 COLL-05 在折叠时重置，v2.2 语义不回退
+- [Phase 08]: 旧文档缺 `expanded` 由 `Persistence.withInitial` 字段级 recover 补 `{}`；单条脏折叠值用 `Schema.catchDecoding` 逐条丢弃，合法兄弟项保留；折叠删除 key、移除工作区时清理 key
 
 ### Pending Todos
 
@@ -119,10 +125,12 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-11-17T18:16:48.948Z
-Stopped at: Phase 07 complete — all phases complete
+Last session: 2026-11-22T04:24:16.612Z
+Stopped at: Phase 8 complete — all phases complete
 Resume file: None
 
 ## Operator Next Steps
 
-- Approve the v2.2 roadmap, then run `/gsd-plan-phase 6`（或 Phase 7，二者相互独立）
+- v2.3 Phase 8 源码完成并通过自动化验证（workspace-sidebar 单测 148 pass；折叠态 e2e 10/10）。
+- 下一步：构建并安装 projects 渠道包后自行重启桌面应用，确认行折叠态恢复。
+- 源码确认后再归档：`/gsd-complete-milestone` 会打 git tag，本次未自动执行。

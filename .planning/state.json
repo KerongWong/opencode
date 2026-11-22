@@ -1,23 +1,12 @@
 {
   "contract": "1.0.0",
   "flavor": "core",
-  "milestone": "v2.2 — dsh 交互对齐：@ 引用短路径与会话列表水位线",
-  "phases": [
-    {
-      "number": "6",
-      "name": "@ 引用短路径",
-      "status": "complete"
-    },
-    {
-      "number": "7",
-      "name": "会话列表水位线",
-      "status": "complete"
-    }
-  ],
+  "milestone": "v2.3 — 侧栏折叠状态持久化",
+  "phases": [],
   "next": {
     "command": "/gsd-new-milestone",
     "label": "Start a new milestone",
     "reason": "All phases complete — start a new milestone"
   },
-  "updated_at": "2026-11-18T02:10:06.489Z"
+  "updated_at": "2026-11-22T04:41:36.288Z"
 }

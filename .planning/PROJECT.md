@@ -8,7 +8,9 @@
 
 侧栏显示什么，完全由我的登记表决定：我登记哪个本地文件夹，就出现哪一行；同一仓库的两份本地拷贝是两行；移除一行只是把它藏起来，目录、git 状态与会话历史分毫不动，重新登记即回来。
 
-## Current Milestone: （无 — v2.2 已于 2026-11-18 完成并归档）
+## Current Milestone: v2.3 侧栏折叠状态持久化（2026-11-22 启动）
+
+**目标**：用户对 Projects 侧栏每个工作区行的展开/折叠操作跨应用重启保留；启动时不再全部折回折叠态。折叠只由用户操作发起。
 
 **最近完成 — v2.2 dsh 交互对齐：@ 引用短路径与会话列表水位线**（Phases 6-7，审计 passed 5/5，归档 `.planning/milestones/v2.2-*`）
 
@@ -37,9 +39,10 @@
 
 ### Active
 
-<!-- 无。v2.1 四项改动全部交付（Phase 4/5）。 -->
+<!-- v2.3 当前里程碑。 -->
 
-- （空）
+- [ ] **FOLD-01**: 用户展开或折叠任意工作区行后，应用重启时该行恢复上次的展开/折叠状态（按 server scope 的 workspace 文档 + rowKey 记录）
+- [ ] **FOLD-02**: 未操作过的行仍默认折叠；新增/重新登记的行沿用现有「自动展开」流程，并同样持久化
 
 ### Out of Scope
 
@@ -58,7 +61,8 @@
 ## Context
 
 - **行源**：客户端登记表，`Persist.serverGlobal(serverScope, "workspace-registry.v1")`；桌面端落 `drafts.sqlite`（经 IPC），Web 落 `localStorage`。
-- **v2.1 新增持久化**：`workspace-sidebar-ui.v1`（`{ revealed: string[] }`，会话列表 Show more/less 展开态，rowKey = directoryKey）。
+- **v2.3 新增持久化**：同一 `workspace-registry.v1` 文档增加 `expanded: Record<rowKey, boolean>`（行折叠态）；与既有 `scrollTop` 同属该 server 的视图状态。`workspace-sidebar-ui.v1` 继续零读零写。
+- **v2.2 语义边界**：会话水位仍为内存态、不持久化（COLL-05）；v2.3 只恢复行折叠态的持久化，不恢复 v2.1 COLL-02 的会话列表展开持久化。
 - **v2.1 新模块**：`session-status.ts`（状态裁决/时间分桶/标记映射纯函数）、`session-row.tsx`（行组件）、`add-open-machine.ts`（Add 跳转状态机）；`sidebar.tsx` 承载双粒度时钟与机器 driver。
 - **状态优先级**（v2.1 产品决定，与蓝本不同）：failed > approval > input > working > unread > idle；failed 不要求 unread；unread 用 check/success 标记。时间标签以 `session.time.updated` 为基准（蓝本 `age()` 同规则）。
 - **会话投影**：`session.list({ directory, limit, order })` 已存在于协议（`packages/schema/src/session.ts` 的 `ListFilter.directory`），服务端按 `eq(directory)` 过滤，默认含归档、支持 cursor 分页。**不要**复用 v1.0 的全局 50 行索引。
@@ -94,4 +98,4 @@ This document evolves at phase transitions and milestone boundaries.
 3. Audit Out of Scope — reasons still valid?
 4. Update Context with current state
 
-Last updated: 2026-11-18 — v2.2 完成（Phase 6 @ 引用短路径 + Phase 7 会话列表水位线，两阶段均人验通过）
+Last updated: 2026-11-22 — v2.3 启动（Projects 侧栏折叠状态跨重启保留）
