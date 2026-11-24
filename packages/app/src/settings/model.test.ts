@@ -7,6 +7,7 @@ import {
   settingsPersistence,
   defaultSettings,
   recentSessionsAvailable,
+  resolveSidebarOrganize,
   monoDefault,
   monoFontFamily,
   sansDefault,
@@ -45,6 +46,7 @@ describe("settings schema", () => {
         showSearch: true,
         experimentalBrowser: false,
         showProjectIcon: true,
+        focusRing: "muted",
         releaseNotes: false,
         mobileDiffWrap: false,
       },
@@ -56,6 +58,7 @@ describe("settings schema", () => {
     expect(settings.general).not.toHaveProperty("showStatus")
     expect(settings.general).not.toHaveProperty("experimentalBrowser")
     expect(settings.general).not.toHaveProperty("showProjectIcon")
+    expect(settings.general).not.toHaveProperty("focusRing")
     expect(settings.appearance).not.toHaveProperty("showProjectName")
 
     const copied = (value: typeof settings) => ({
@@ -96,8 +99,8 @@ describe("settings schema", () => {
         showTurnDiffs: false,
         backgroundActivity: "left",
         timelineWidth: "comfortable",
-        newIcons: false,
         foldUserMessages: false,
+        wrapCodeBlocks: false,
         newQuestionUI: false,
         sidebarOrganize: "list",
         mobileTitlebarPosition: "top",
@@ -134,9 +137,18 @@ describe("settings schema", () => {
     expect(decode(encode(settings)).appearance.tabLayout).toBe(layout)
   })
 
-  test.each(["list", "projects", "customize", "recent"])("round trips saved side-tab organization %s", (mode) => {
-    const settings = decode({ general: { sidebarOrganize: mode } })
-    expect(decode(encode(settings)).general.sidebarOrganize).toBe(mode)
+  test.each(["list", "projects", "customize", "recent", "consolidated"])(
+    "round trips saved side-tab organization %s",
+    (mode) => {
+      const settings = decode({ general: { sidebarOrganize: mode } })
+      expect(decode(encode(settings)).general.sidebarOrganize).toBe(mode)
+    },
+  )
+
+  test("Projects stays available where offered, and moves to Consolidated or Customize elsewhere", () => {
+    expect(resolveSidebarOrganize("projects", ["list", "projects", "customize"])).toBe("projects")
+    expect(resolveSidebarOrganize("projects", ["list", "customize", "recent", "consolidated"])).toBe("consolidated")
+    expect(resolveSidebarOrganize("projects", ["list", "customize"])).toBe("customize")
   })
 
   test("the retired Recent sessions switch does not opt into Recent organization", () => {

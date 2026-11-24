@@ -21,7 +21,7 @@ import { homeProjectDirectories } from "@/shell/layout/helpers"
 import { useLayout } from "@/shell/state/layout"
 import { createProjectSessionActions } from "@/shell/tabs/project-sessions"
 import { useTabs } from "@/shell/tabs/tabs"
-import { createSidebarActivityListener } from "@/shell/titlebar/sidebar-organized"
+import { createSidebarActivityListener } from "@/shell/titlebar/sidebar-customized"
 import { useDirectoryPicker } from "@/workspaces/selection/picker"
 import { projectSettingsKey, useSettings } from "@/settings/model"
 import {

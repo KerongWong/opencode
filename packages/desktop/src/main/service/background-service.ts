@@ -102,19 +102,22 @@ const prepare = Effect.fn("BackgroundService.prepare")(function* (mode: Backgrou
   yield* Effect.logInfo("starting v2 background service")
   const path = yield* Path.Path
   const desktopCli = yield* DesktopCli.Service
-  const isolated = !app.isPackaged && process.env.OPENCODE_DESKTOP_ISOLATED_SERVER === "1"
+  const reuse = !app.isPackaged && process.env.OPENCODE_DESKTOP_REUSE_SERVER === "1"
+  const isolated = !app.isPackaged && !reuse && process.env.OPENCODE_DESKTOP_ISOLATED_SERVER === "1"
   const cli = yield* desktopCli.resolve
-  const version = serviceVersion({ channel: CHANNEL, isolated, mode, version: cli.version })
+  const version = reuse ? undefined : serviceVersion({ channel: CHANNEL, isolated, mode, version: cli.version })
 
   if (isolated) process.env.XDG_STATE_HOME = app.getPath("userData")
   const client = yield* Effect.promise(() => import("@opencode/client/service"))
+
+  const reuseFile = reuse ? process.env.OPENCODE_DESKTOP_REUSE_SERVICE_FILE || undefined : undefined
 
   // The bundled CLI registers under the channel's filename (service.json for dev/beta,
   // service-projects.json for projects): probe exactly that file, never the client default, or ensure
   // waits on a registration that never appears.
   const state = process.env.XDG_STATE_HOME ?? path.join(app.getPath("home"), ".local", "state")
   const channel = process.env.OPENCODE_DESKTOP_SERVER_CHANNEL === "local" ? "local" : CHANNEL
-  const file = path.join(state, "opencode", registrationFile(channel))
+  const file = reuse ? reuseFile : path.join(state, "opencode", registrationFile(channel))
 
   return { cli, client, file, isolated, version }
 })
