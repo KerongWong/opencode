@@ -94,6 +94,19 @@ export type Error = BlockedError | CorrectedError
 
 export { ignoresCase, pathActions } from "./permission/policy.js"
 
+/**
+ * What "Allow always" saves for a web URL: its site, so approving one page doesn't allow every URL. Rules match the URL
+ * as written, so the site is kept as written, with and without a path. The site ends where URL parsing ends it,
+ * including at `\`, which parsers treat as `/`. A URL with credentials or whitespace in its site
+ * (`https://opencode.ai@evil.com` goes to evil.com) saves only itself. Rules treat `*` and `?` as wildcards, so a site
+ * with either, such as `https://*`, gets no pattern, and neither does an unusual URL with either: no "Allow always".
+ */
+export function site(url: string) {
+  const origin = /^https?:\/\/[^/\\?#@\s*]+(?=[/\\?#]|$)/i.exec(url)?.[0]
+  if (origin) return [origin, `${origin}/*`]
+  return /[*?]/.test(url) ? [] : [url]
+}
+
 export function evaluate(action: string, resource: string, ...rulesets: Permission.Ruleset[]): Permission.Rule {
   return PermissionPolicy.evaluate(PermissionPolicy.fromRules(...rulesets), action, resource)
 }
@@ -210,8 +223,14 @@ const layer = Layer.effect(
       const unattended = yield* Unattended
       if (event.effect !== "ask" || unattended === undefined)
         return { effect: event.effect, message: event.message, policy: effective }
-      const settled = PermissionPolicy.override(effective, unattended)
-      if (PermissionPolicy.evaluateAll(settled, input.action, input.resources) === "allow")
+      // When an evaluate hook downgraded `allow` to `ask`, unattended rules must explicitly allow the request
+      // rather than inheriting the pre-hook `allow` from `effective`.
+      const settled =
+        effect === "ask" ? PermissionPolicy.override(effective, unattended) : PermissionPolicy.fromRules(unattended)
+      if (
+        (effect === "ask" || input.resources.length > 0) &&
+        PermissionPolicy.evaluateAll(settled, input.action, input.resources) === "allow"
+      )
         return { effect: "allow" as const, policy: effective }
       return {
         effect: "deny" as const,
