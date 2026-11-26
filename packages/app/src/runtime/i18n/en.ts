@@ -1424,6 +1424,10 @@ export const dict = {
 
   "session.markRead": "Mark as read",
   "session.markUnread": "Mark as unread",
+  "session.copy": "Copy",
+  "session.copy.id": "Session ID",
+  "session.copy.title": "Session title",
+  "session.copy.projectID": "Project ID",
 
   "session.delete.failed.title": "Failed to delete session",
   "session.delete.title": "Delete session",
@@ -1494,6 +1498,12 @@ export const dict = {
   "workspace.delete.confirm": "Delete “{{name}}”?",
   "workspace.delete.location": "Location",
   "workspace.delete.button": "Delete worktree",
+
+  "deepLink.open.title": "Open “{{name}}” as a project?",
+  "deepLink.open.description": "A link asked OpenCode to open this folder.",
+  "deepLink.open.folder": "Folder",
+  "deepLink.open.warning": "Opening a folder runs the plugins and settings inside it. Only open folders you trust.",
+  "deepLink.open.button": "Open project",
 
   "lab.components": "Components",
   "lab.search": "Search components",
